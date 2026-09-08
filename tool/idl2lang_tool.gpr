@@ -1,0 +1,19 @@
+------------------------------------------------------------------------------
+--  idl2lang_tool.gpr -- CLI driver project importing the library
+------------------------------------------------------------------------------
+
+with "../idl2lang.gpr";
+
+project Idl2lang_Tool is
+
+   for Languages use ("Ada");
+   for Source_Dirs use (".");
+   for Object_Dir use "obj";
+   for Exec_Dir use ".";
+   for Main use ("idl2lang-tool.adb");
+
+   package Compiler is
+      for Switches ("ada") use ("-gnat2022", "-gnatwa");
+   end Compiler;
+
+end Idl2lang_Tool;

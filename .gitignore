@@ -1,0 +1,42 @@
+# GNAT / GPRbuild compiler & linker output
+obj/
+lib/
+tool/obj/
+test/obj/
+test/objd/
+
+# Alire workspace state (alire.toml itself IS tracked)
+alire/
+config/
+
+# GNAT object, ALI, and executable artifacts (in case they land elsewhere)
+*.o
+*.ali
+*.exe
+*.a
+*.so
+*.dll
+*.lexch
+
+# GNAT binder & gnatmake temporaries
+b__*
+*.bexch
+*.dg
+*.ci
+*.cin
+*.cgpr
+
+# GPS / GNAT Studio project state
+.gps/
+*.nfp
+
+# Editor / OS noise
+*.swp
+*~
+Thumbs.db
+IDEA.md
+Goal.txt
+
+# Local copies of the OMG IDL 4.2 specification (fetch from
+# https://www.omg.org/spec/IDL/4.2/PDF)
+doc/

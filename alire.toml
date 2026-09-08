@@ -1,0 +1,39 @@
+name = "idl2lang"
+description = "OMG IDL 4.2 front-end and multi-language code generator in Ada"
+long-description = """
+A front-end for OMG IDL 4.2 (Interface Definition Language, OMG document
+formal/18-01-05) written in Ada, with a framework for generating code in
+target programming languages from IDL specifications.
+
+The goal is a spec-traceable implementation: every token form, grammar
+rule, and semantic rule is taken from the normative text of the
+specification and cross-referenced to its clause number in the source
+comments.
+
+Implemented: the lexical conventions of clause 7.2 (tokens, comments,
+identifiers incl. escaped identifiers, keywords, punctuation, integer /
+character / string / floating-point / fixed-point literals) and the
+recognition of preprocessor directive lines (7.3).
+"""
+version = "0.1.0"
+licenses = "GPL-3.0-or-later"
+website = "https://github.com/persan/idl2lang"
+
+authors = ["Per Sandberg"]
+maintainers = ["Per Sandberg <per.s.sandberg@bahnhof.se>"]
+maintainers-logins = ["persan"]
+tags = ["idl", "compiler", "parser", "codegen", "ada"]
+
+project-files = ["idl2lang.gpr", "tool/idl2lang_tool.gpr"]
+
+[build-switches]
+development.compile_checks = "errors"
+validation.runtime_checks = "everything"
+release.optimization = "performance"
+
+# Test-only dependency (AUnit framework, used by test/).
+# The compiler itself is not pinned as a crate dependency: Alire picks
+# the configured toolchain (alr toolchain), which may be an external
+# GNAT Pro install that the "gnat" meta-crate cannot represent.
+[[depends-on]]
+aunit = "^26.0"

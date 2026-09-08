@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Build & test (Alire, AUnit)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Alire and toolchain
+        uses: alire-project/setup-alire@v4
+        with:
+          version: 2.1.0
+          toolchain: gnat_native^15 gprbuild^25
+
+      - name: Build library, tool, and AUnit test driver
+        run: |
+          alr build
+          alr exec -- gprbuild -P tool/idl2lang_tool.gpr
+          alr exec -- gprbuild -P test/test_idl2lang.gpr
+
+      - name: Run AUnit tests
+        run: |
+          test/test_idl2lang | tee test_output.txt
+
+      - name: Publish test summary
+        if: always()
+        run: |
+          {
+            echo "## idl2lang AUnit results (${{ github.sha }})"
+            echo '```'
+            grep -E "^(OK|FAIL|Total|Successful|Failed|Unexpected)" test_output.txt || true
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
