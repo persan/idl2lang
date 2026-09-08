@@ -12,6 +12,7 @@ with AUnit.Test_Suites;
 with Ada.Command_Line;
 
 with IDL2Lang.Tests.Lexer;
+with IDL2Lang.Tests.Parser;
 
 procedure Test_IDL2Lang is
 
@@ -25,6 +26,7 @@ procedure Test_IDL2Lang is
       Result : constant Access_Test_Suite := new Test_Suite;
    begin
       Add_Test (Result, new IDL2Lang.Tests.Lexer.Lexer_Test);
+      Add_Test (Result, new IDL2Lang.Tests.Parser.Parser_Test);
       return Result;
    end Suite;
 

@@ -12,8 +12,13 @@ comments.
 
 Implemented: the lexical conventions of clause 7.2 (tokens, comments,
 identifiers incl. escaped identifiers, keywords, punctuation, integer /
-character / string / floating-point / fixed-point literals) and the
-recognition of preprocessor directive lines (7.3).
+character / string / floating-point / fixed-point literals), the
+recognition of preprocessor directive lines (7.3), and the parser / AST
+of the Core Data Types building block (7.4.1, rules 1-68: modules,
+scoped names, constants and the constant-expression precedence ladder,
+all type specs incl. sequence/string/wstring/fixed, structs with array
+declarators, unions, enums, native, typedefs and forward declarations)
+plus the Annotations building block (7.4.15, rules 218-227).
 """
 version = "0.1.0"
 licenses = "GPL-3.0-or-later"

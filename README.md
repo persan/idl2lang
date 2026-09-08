@@ -24,6 +24,23 @@ adjacent-literal concatenation), floating-point (7.2.6.4), and fixed-point
 backslash-newline continuation (7.3). The `idl2lang_tool` CLI prints the
 token stream of an IDL file.
 
+Implemented and AUnit-tested: the **Parser / AST** of the Core Data
+Types building block (7.4.1, rules 1–68) — `<specification>` /
+`<definition>` (rules 1–2), modules (rule 3, incl. reopening), scoped
+names (rule 4), constant declarations with the full constant-expression
+precedence ladder (rules 5–19: `|` `^` `&` `<<` `>>` `+ -` `* / %`,
+unary `+ - ~`, parentheses, boolean literals), type specs incl.
+`sequence<T>` / `sequence<T, N>`, `string<N>`, `wstring<N>`,
+`fixed<d,s>` (rules 21–43), struct members with array declarators
+(rules 46–48, 59–60, 67–68), unions with multi-label cases and
+`default` (rules 49–56), enumerations (rules 57–58), `native`
+(rule 61), typedefs incl. the inline `typedef struct {...} Name` form
+(rules 63–66), and forward declarations — plus the **Annotations
+building block** (7.4.15, rules 218–227): `@annotation` declarations
+with members and defaults, and applications in all three forms
+(`@key`, `@name(value)`, `@name(member = value)`). The `idl2lang_tool
+-ast <file.idl>` CLI prints the AST dump.
+
 ## Layout
 
 | Path | Contents |
@@ -39,6 +56,8 @@ token stream of an IDL file.
 |---|---|---|
 | `IDL2Lang.Tokens` | 7.2.1, 7.2.4 | Token kinds (five token classes of 7.2.1), keyword table (Table 7-6), case-collision lookup (7.2.4) |
 | `IDL2Lang.Lexers` | 7.2, 7.3 | Lexical analysis: white space/comments, identifiers and escaped identifiers, keywords (exact spelling, case-collision rejection), punctuation (longest match), integer/character/string/floating/fixed literals, directive lines |
+| `IDL2Lang.Syntax` | 7.4.1, 7.4.15 | AST node shapes for rules 1–68 (Core Data Types) and 218–227 (annotations); scoped names, constant-expression trees, type specs, declarators, struct members, union cases, enumerators, annotation applications |
+| `IDL2Lang.Parsers` | 7.4.1, 7.4.15 | Recursive-descent parser: rule-2 dispatch, module nesting, the constant-expression precedence ladder, all type forms, struct/union/enum/typedef/native, annotation declarations and applications |
 
 ## Usage
 
@@ -67,12 +86,34 @@ module Hello {
 ...
 ```
 
+AST dump mode:
+
+```
+$ tool/idl2lang_tool.exe -ast hello.idl
+```
+
+```
+(module Hello
+  (const string GREETING
+    (value "Hello")
+  )
+  (struct Time
+    (member unsigned long long
+      seconds
+    )
+    (member unsigned long
+      fraction
+    )
+  )
+)
+```
+
 ## Roadmap
 
 - [x] Milestone 0 — lexer (clause 7.2 / 7.3)
-- [ ] Milestone 1 — parser/AST for the Core Data Types building block (7.4.1, rules 1–68)
+- [x] Milestone 1 — parser/AST for the Core Data Types building block (7.4.1, rules 1–68) plus annotations (7.4.15, rules 218–227)
 - [ ] Milestone 2 — names and scoping (7.5), constant-expression evaluation (7.4.1.4.3)
-- [ ] Milestone 3 — codegen framework + first target back-end
+- [ ] Milestone 3 — codegen framework: tagged-type back-end base class, `language`/`vendor` factory, first target (byte-parity with rtiddsgen's `-language Ada -create typefiles` output)
 
 ## License
 
