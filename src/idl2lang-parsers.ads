@@ -11,7 +11,6 @@
 --  message locating the offending token.
 ------------------------------------------------------------------------------
 
-with Ada.Containers.Vectors;
 with IDL2Lang.Syntax;
 
 package IDL2Lang.Parsers is
@@ -19,13 +18,12 @@ package IDL2Lang.Parsers is
    Syntax_Error : exception;
 
    --  The "=" of access-to-definition values is needed by the vector
-   --  instantiation's default equality (GNAT pitfall #1: operators on
-   --  access types are not directly visible without a use clause).
+   --  instantiation's default equality (GNAT pitfall #1).
    use all type IDL2Lang.Syntax.Definition_Ref;
 
-   package Definition_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive,
-      Element_Type => IDL2Lang.Syntax.Definition_Ref);
+   package Definition_Vectors renames IDL2Lang.Syntax.Definition_Vectors;
+   --  One shared instance: Parse's result type is the same vector the
+   --  back-ends and tests walk, so there is no type conversion anywhere.
 
    function Parse (Text : String) return Definition_Vectors.Vector;
    --  Parse an IDL translation unit: <specification> (rule 1) is one or

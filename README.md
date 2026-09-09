@@ -115,6 +115,31 @@ $ tool/idl2lang_tool.exe -ast hello.idl
 - [ ] Milestone 2 — names and scoping (7.5), constant-expression evaluation (7.4.1.4.3)
 - [ ] Milestone 3 — codegen framework: tagged-type back-end base class, `language`/`vendor` factory, first target (byte-parity with rtiddsgen's `-language Ada -create typefiles` output)
 
+## Status of Milestone 3 (in progress)
+
+Implemented: `IDL2Lang.Backends` — the abstract tagged-type base class
+(one primitive per output language, Goal req. 7), the in-memory output
+plumbing (byte-exact `Put`/`Put_Line`/`New_Line`, post-Generate access
+via `File_Count`/`File_Name`/`File_Contents`, `Write_All` to disk), and
+`IDL2Lang.Backends.Factory` — the `Lookup (Language, Vendor, ...)`
+factory in the base class's package (Goal req. 7).
+
+`IDL2Lang.Backends.Ada_RTI` is the first concrete back-end (Goal
+req. 4): it emits the four pure-Ada type-support files of
+`rtiddsgen -language Ada -create typefiles` — `hello.ads`, `hello.adb`,
+`hello-time_datareader.ads`, `hello-time_datawriter.ads` — **byte-identical**
+to rtiddsgen 4.7.0's output for structs of primitive members,
+including the reference quirk bytes (double space in `package  Hello`,
+trailing-space member lines, the `" "` line before the record, the
+`To_DDS_String  ("...")` double space, 17-space continuation
+indent). The AUnit suite diffs each generated file against the
+captured oracle in `test/data/oracle_ada/` byte by byte.
+
+Remaining for full rtiddsgen parity: the C plugin layer (`Hello.c/.h`,
+`HelloPlugin.c/.h`, `HelloSupport.c/.h`), non-primitive members
+(strings, sequences, arrays, scoped-name members), enums/unions as
+members, nested modules, and multiple structs per module.
+
 ## License
 
 GPL-3.0-or-later (same as the author's other Ada projects).

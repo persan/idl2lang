@@ -13,6 +13,7 @@ with Ada.Command_Line;
 
 with IDL2Lang.Tests.Lexer;
 with IDL2Lang.Tests.Parser;
+with IDL2Lang.Tests.Codegen;
 
 procedure Test_IDL2Lang is
 
@@ -27,6 +28,7 @@ procedure Test_IDL2Lang is
    begin
       Add_Test (Result, new IDL2Lang.Tests.Lexer.Lexer_Test);
       Add_Test (Result, new IDL2Lang.Tests.Parser.Parser_Test);
+      Add_Test (Result, new IDL2Lang.Tests.Codegen.Codegen_Test);
       return Result;
    end Suite;
 

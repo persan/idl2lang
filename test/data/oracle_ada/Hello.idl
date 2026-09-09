@@ -1,0 +1,6 @@
+module Hello {
+  struct Time {
+    unsigned long long seconds;
+    unsigned long fraction;
+  };
+};
