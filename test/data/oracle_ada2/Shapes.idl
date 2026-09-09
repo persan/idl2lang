@@ -1,0 +1,17 @@
+module Shapes {
+  enum Color { red, green, blue };
+
+  struct Point {
+    long x;
+    long y;
+  };
+
+  struct Polygon {
+    string name;
+    Color fill;
+    Point corners[4];
+    sequence<long> lengths;
+    sequence<double, 8> weights;
+    unsigned short depth;
+  };
+};

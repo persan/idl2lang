@@ -7,7 +7,9 @@
 ------------------------------------------------------------------------------
 
 with Ada.Directories;
-with Ada.Text_IO;
+with Ada.Streams;
+with Ada.Streams.Stream_IO;
+
 
 package body IDL2Lang.Backends is
 
@@ -116,21 +118,36 @@ package body IDL2Lang.Backends is
    end File_Contents;
 
    procedure Write_All (Self : in out Backend_T; Output_Dir : String) is
-      F : Ada.Text_IO.File_Type;
+      F : Ada.Streams.Stream_IO.File_Type;
    begin
       --  Flush whatever is still open, then write everything.
+      --  Stream_IO, not Text_IO: Text_IO would translate LF to CRLF
+      --  on Windows, breaking byte parity.
       Flush_Current (Self);
       if not Ada.Directories.Exists (Output_Dir) then
          Ada.Directories.Create_Directory (Output_Dir);
       end if;
       for I in Self.Emitted.First_Index .. Self.Emitted.Last_Index loop
-         Ada.Text_IO.Create
-           (F, Ada.Text_IO.Out_File,
-            Output_Dir & '/'
-              & Ada.Strings.Unbounded.To_String (Self.Emitted (I).Name));
-         Ada.Text_IO.Put
-           (F, Ada.Strings.Unbounded.To_String (Self.Emitted (I).Text));
-         Ada.Text_IO.Close (F);
+         declare
+            Text : constant String :=
+              Ada.Strings.Unbounded.To_String (Self.Emitted (I).Text);
+            Bytes : Ada.Streams.Stream_Element_Array
+              (1 .. Ada.Streams.Stream_Element_Offset (Text'Length));
+            J : Ada.Streams.Stream_Element_Offset := 1;
+         begin
+            for K in Text'Range loop
+               Bytes (J) := Ada.Streams.Stream_Element
+                 (Character'Pos (Text (K)));
+               J := Ada.Streams.Stream_Element_Offset'Succ (J);
+            end loop;
+            Ada.Streams.Stream_IO.Create
+              (F, Ada.Streams.Stream_IO.Out_File,
+               Output_Dir & '/'
+                 & Ada.Strings.Unbounded.To_String
+                     (Self.Emitted (I).Name));
+            Ada.Streams.Stream_IO.Write (F, Bytes);
+            Ada.Streams.Stream_IO.Close (F);
+         end;
       end loop;
    end Write_All;
 

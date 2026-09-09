@@ -3,41 +3,32 @@
 --
 --  Goal.txt requirement 5: generate the same output files with the
 --  same contents as RTI's rtiddsgen ("-language Ada -create
---  typefiles").  This first increment covers the pure-Ada files of
---  `-create typefiles` for structs of primitive members:
+--  typefiles").  This increment covers, for one module:
 --
---    <module>_<type>.ads        the type definition module
---    <module>_<type>.adb        Initialize/Finalize/Copy bodies
---    <module>_<type>_datareader.ads
---    <module>_<type>_datawriter.ads
+--    <module>.ads / .adb           all types in source order
+--    <module>-<type>_typesupport.ads/.adb   per struct (not enum)
+--    <module>-<type>_datareader.ads         per struct
+--    <module>-<type>_datawriter.ads         per struct
 --
---  (The C plugin files Hello.c/.h, HelloPlugin.c/.h, HelloSupport.c/.h
---  are separate back-end work, tracked in the README roadmap.)
+--  supported member kinds: primitives (7.4.1 Table 7-13 etc.),
+--  bounded/unbounded strings, scoped-name members (enums and structs
+--  of the same module), fixed-size arrays of primitive/scoped types,
+--  and sequences (mapped to the pre-instantiated Standard.DDS.*_Seq
+--  for primitives, per the oracle).
 --
---  Byte parity: every line below is transcribed from rtiddsgen 4.7.0
---  output (test/data/oracle_ada), including its quirks -- "package  N"
---  with two spaces, trailing spaces on member lines ("    "), the
---  " " line before the record, and "N_TypeName" with
---  To_DDS_String  ("...") double space.
+--  Byte parity: every line is transcribed from rtiddsgen 4.7.0 output
+--  (test/data/oracle_ada and oracle_ada2), including its quirks --
+--  "package  N" with two spaces, the " " and "  " blank lines,
+--  trailing-space member lines, enum spacing ("red, " / "blue   );"),
+--  "aliased  " double space for array/sequence members, the
+--  "maximum length = (N)" comments, and the token-template
+--  typesupport bodies (whole-word type-name substitution over the
+--  Point oracle).
 --
---  rtiddsgen type-mapping used here (dds_rtiddsgen mapping, structs
---  of primitive members):
---    short                  -> Standard.DDS.Short
---    unsigned short         -> Standard.DDS.Unsigned_Short
---    long                   -> Standard.DDS.Long
---    unsigned long          -> Standard.DDS.Unsigned_Long
---    long long              -> Standard.DDS.Long_Long
---    unsigned long long     -> Standard.DDS.Unsigned_Long_Long
---    float                  -> Standard.DDS.Float
---    double                 -> Standard.DDS.Double
---    char                   -> Standard.DDS.Char
---    boolean                -> Standard.DDS.Boolean
---    octet                  -> Standard.DDS.Octet
---
---  Naming rules (observed from rtiddsgen output):
---    file names: lowercased module, "_" separators for nested scopes
---    package name: the IDL module name as written
---    C-side link names: "Module_Type_function"
+--  Naming: file names lowercase the module ("Shapes" -> "shapes");
+--  typesupport/datareader/datawriter files separate module and type
+--  with "-" but keep "_" before the suffix; C-side link names are
+--  "Module_Type_function"; "Shapes_Color_get_typecode".
 ------------------------------------------------------------------------------
 
 with IDL2Lang.Syntax;

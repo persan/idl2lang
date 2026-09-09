@@ -1,0 +1,15 @@
+module Full {
+  enum Color { red, green, blue };
+  struct Kitchen {
+    char c;
+    wchar wc;
+    octet o;
+    boolean b;
+    float f;
+    double d;
+    long double ld;
+    string<10> bounded;
+    wstring<5> wbounded;
+    Color rgb;
+  };
+};

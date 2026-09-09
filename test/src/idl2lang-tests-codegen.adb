@@ -23,6 +23,25 @@ package body IDL2Lang.Tests.Codegen is
      & "  };" & ASCII.LF
      & "};" & ASCII.LF;
 
+   Shapes_Idl : constant String :=
+     "module Shapes {" & ASCII.LF
+     & "  enum Color { red, green, blue };" & ASCII.LF
+     & ASCII.LF
+     & "  struct Point {" & ASCII.LF
+     & "    long x;" & ASCII.LF
+     & "    long y;" & ASCII.LF
+     & "  };" & ASCII.LF
+     & ASCII.LF
+     & "  struct Polygon {" & ASCII.LF
+     & "    string name;" & ASCII.LF
+     & "    Color fill;" & ASCII.LF
+     & "    Point corners[4];" & ASCII.LF
+     & "    sequence<long> lengths;" & ASCII.LF
+     & "    sequence<double, 8> weights;" & ASCII.LF
+     & "    unsigned short depth;" & ASCII.LF
+     & "  };" & ASCII.LF
+     & "};" & ASCII.LF;
+
    --  File names in generation order (see the back-end's Generate).
    Expected_Names : constant array (1 .. 4) of access constant String :=
      [new String'("hello.ads"),
@@ -40,7 +59,7 @@ package body IDL2Lang.Tests.Codegen is
       loop
          begin
             if Exists (SU.To_String (Candidate) & "/test/data/oracle_ada") then
-               return SU.To_String (Candidate) & "/test/data/oracle_ada";
+               return SU.To_String (Candidate) & "/test/data";
             end if;
             Depth := Depth + 1;
             exit when Depth > 10;
@@ -84,37 +103,36 @@ package body IDL2Lang.Tests.Codegen is
       return Bytes_To_String (Raw (1 .. Last));
    end Read_File;
 
-   procedure Assert_Parity is
+   procedure Assert_Parity
+     (Idl_Text : String; Oracle_Subdir : String; Expected_Files : Natural)
+   is
       Tree : constant IDL2Lang.Parsers.Definition_Vectors.Vector :=
-        IDL2Lang.Parsers.Parse (Oracle_Idl);
+        IDL2Lang.Parsers.Parse (Idl_Text);
       Backend : constant B.Backend_Ref :=
         IDL2Lang.Backends.Factory.Lookup
           (Language => "Ada",
            Vendor   => "RTI",
            Tree     => Tree,
-           Idl_Path => "Hello.idl",
+           Idl_Path =>
+             (if Oracle_Subdir = "/oracle_ada" then "Hello.idl"
+              else "Shapes.idl"),
            Output_Dir => "");
-      Oracle_Dir : constant String := Find_Oracle_Dir;
+      Oracle_Dir : constant String :=
+        Find_Oracle_Dir & Oracle_Subdir;
    begin
-      Assert (Oracle_Dir /= "", "oracle directory not found");
-      Assert (B.File_Count (Backend.all) = 4,
-              "expected 4 emitted files, got"
+      Assert (Find_Oracle_Dir /= "", "oracle directory not found");
+      Assert (B.File_Count (Backend.all) = Expected_Files,
+              "expected" & Natural'Image (Expected_Files)
+                & " emitted files, got"
                 & Natural'Image (B.File_Count (Backend.all)));
-      --  The back-end emits files in a fixed order; walk the same
-      --  order and diff each against the oracle bytes.
-      for I in 1 .. 4 loop
+      for I in 1 .. Expected_Files loop
          declare
             Actual : constant String := B.File_Contents (Backend.all, I);
             Oracle_Path : constant String :=
-              Oracle_Dir & "/" & Expected_Names (I).all;
+              Oracle_Dir & "/" & B.File_Name (Backend.all, I);
             Expected : constant String := Read_File (Oracle_Path);
             Diff_At : Natural := 0;
          begin
-            Assert (B.File_Name (Backend.all, I)
-                      = Expected_Names (I).all,
-                    "file name mismatch for file" & I'Img & ": got """
-                      & B.File_Name (Backend.all, I) & """");
-
             --  Byte comparison with a focused first-difference report.
             if Actual /= Expected then
                declare
@@ -134,11 +152,46 @@ package body IDL2Lang.Tests.Codegen is
                      Diff_At := Min_Len + 1;
                   end if;
                end;
-               Assert (False,
-                 Expected_Names (I).all & ": byte difference at offset"
-                   & Natural'Image (Diff_At) & " (got length"
-                   & Actual'Length'Img & ", expected"
-                   & Expected'Length'Img & "); got [[" & Actual & "]]");
+               declare
+                  G_Tail : constant String :=
+                    Actual
+                      (Natural'Max (Actual'First, Actual'Last - 15)
+                         .. Actual'Last);
+                  E_Tail : constant String :=
+                    Expected
+                      (Natural'Max (Expected'First, Expected'Last - 15)
+                         .. Expected'Last);
+                  Hex : constant String := "0123456789ABCDEF";
+                  function Hex_Byte (C : Character) return String is
+                    ("" & Hex (Character'Pos (C) / 16 + 1)
+                       & Hex (Character'Pos (C) mod 16 + 1));
+                  G_Hex, E_Hex : String := "  ";
+               begin
+                  --  Hex of the bytes around Diff_At on both sides.
+                  G_Hex := "  ";
+                  E_Hex := "  ";
+                  if Diff_At >= 2
+                    and then Diff_At <= Actual'Length
+                  then
+                     G_Hex := Hex_Byte (Actual (Actual'First + Diff_At - 1));
+                  end if;
+                  if Diff_At >= 2
+                    and then Diff_At <= Expected'Length
+                  then
+                     E_Hex := Hex_Byte (Expected
+                       (Expected'First + Diff_At - 1));
+                  end if;
+                  Assert (False,
+                    B.File_Name (Backend.all, I)
+                      & ": byte difference at offset"
+                      & Natural'Image (Diff_At) & " (got length"
+                      & Actual'Length'Img & ", expected"
+                      & Expected'Length'Img & "); gen byte="
+                      & G_Hex & " oracle byte=" & E_Hex
+                      & "; gen tail=[" & G_Tail & "] ora tail=["
+                      & E_Tail & "]]");
+                  pragma Unreferenced (G_Hex, E_Hex);
+               end;
             end if;
          end;
       end loop;
@@ -151,8 +204,18 @@ package body IDL2Lang.Tests.Codegen is
    is
       pragma Unreferenced (Tc);
    begin
-      Assert_Parity;
+      Assert_Parity (Oracle_Idl, "/oracle_ada", 6);
    end Test_Hello_Oracle;
+
+   procedure Test_Shapes_Oracle
+     (Tc : in out AUnit.Test_Cases.Test_Case'Class)
+   is
+      pragma Unreferenced (Tc);
+   begin
+      --  2 module files + 2 structs x 4 support files
+      --  (typespec/typespec-body/datareader/datawriter).
+      Assert_Parity (Shapes_Idl, "/oracle_ada2", 2 + 2 * 4);
+   end Test_Shapes_Oracle;
 
    ---------------------------------------------------------------------------
 
@@ -187,6 +250,7 @@ package body IDL2Lang.Tests.Codegen is
       use AUnit.Test_Cases.Registration;
    begin
       Register_Routine (T, Test_Hello_Oracle'Access, "Hello oracle parity");
+      Register_Routine (T, Test_Shapes_Oracle'Access, "Shapes oracle parity");
       Register_Routine (T, Test_Factory_Unknown_Language'Access,
                         "factory unknown language");
    end Register_Tests;

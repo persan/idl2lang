@@ -125,20 +125,26 @@ via `File_Count`/`File_Name`/`File_Contents`, `Write_All` to disk), and
 factory in the base class's package (Goal req. 7).
 
 `IDL2Lang.Backends.Ada_RTI` is the first concrete back-end (Goal
-req. 4): it emits the four pure-Ada type-support files of
-`rtiddsgen -language Ada -create typefiles` — `hello.ads`, `hello.adb`,
-`hello-time_datareader.ads`, `hello-time_datawriter.ads` — **byte-identical**
-to rtiddsgen 4.7.0's output for structs of primitive members,
-including the reference quirk bytes (double space in `package  Hello`,
-trailing-space member lines, the `" "` line before the record, the
-`To_DDS_String  ("...")` double space, 17-space continuation
-indent). The AUnit suite diffs each generated file against the
-captured oracle in `test/data/oracle_ada/` byte by byte.
+req. 4): it emits the pure-Ada type-support files of
+`rtiddsgen -language Ada -create typefiles` — the module spec/body
+(`shapes.ads`/`.adb` with enums, structs, strings incl. the
+`--  maximum length = (N)` comments, scoped-name members, fixed-size
+arrays, sequences mapped to `Standard.DDS.*_Seq`), per-type
+`-typesupport.ads/-.adb` (emitted from a token template with
+`@MODL@`/`@TYPE@` placeholders, matching rtiddsgen's own template
+engine), and `-datareader.ads`/`-datawriter.ads` — **byte-identical**
+to rtiddsgen 4.7.0's output, including the reference quirk bytes
+(double space in `package  Hello`, trailing-space member lines, the
+`" "` line before the record, the `To_DDS_String  ("...")` double
+space, 17-space continuation indent, `red => 0 , ` spacing, and the
+whole-word template substitution that preserves `AllocatePointers`).
+The AUnit suite diffs every generated file against the captured
+oracles in `test/data/oracle_ada/` (Hello) and `test/data/oracle_ada2/`
+(Shapes) byte by byte.
 
 Remaining for full rtiddsgen parity: the C plugin layer (`Hello.c/.h`,
-`HelloPlugin.c/.h`, `HelloSupport.c/.h`), non-primitive members
-(strings, sequences, arrays, scoped-name members), enums/unions as
-members, nested modules, and multiple structs per module.
+`HelloPlugin.c/.h`, `HelloSupport.c/.h`), nested modules, and
+multi-dimension arrays.
 
 ## License
 
