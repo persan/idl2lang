@@ -1,0 +1,39 @@
+//=============================================================================
+// Copyright (C)  2007 Saab SWEDEN
+//=============================================================================
+//
+// Description : Collection of environment reference data for a platform (ship).
+//
+// External dependencies:
+//        com::saabgroup::enterprisebus::generalservices::time v4.0.0
+//
+//
+//===========================================================================
+
+#include "timeType.idl"
+#include "com_saabgroup_enterprisebus.idl"
+
+module com { module saabgroup { module enterprisebus {
+      module environmentreference {
+	// -------------------------------------------------
+	// The version of this IDL file
+	//
+	const string IDL_VERSION = "1.1.0";
+	const string DEFAULT_TOPIC =
+	"com.saabgroup.enterprisebus.environmentereference.environmentData";
+
+
+	// ---------------------------------------------------
+	// the depth below the platform
+	struct BottomRange{
+	  com::saabgroup::enterprisebus::generalservices::time::TimeType time;
+	  com::saabgroup::enterprisebus::METER The_bottomRange;
+	}; //@top-level false
+
+
+	struct EnvironmentData {
+	  BottomRange       bottomRange;
+	}; //@top-level true
+
+      };
+    }; }; };

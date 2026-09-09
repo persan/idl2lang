@@ -798,7 +798,16 @@ package body IDL2Lang.Parsers is
             Member := (Annotations => Annots,
                        Member_Type => Typ,
                        Declarators => <>,
+                       Is_Pointer => False,
                        Line => M_Line, Col => M_Col);
+            --  Pointer declarator (corpus: "long * member;",
+            --  "fwd_struct* fwd_value;"): the '*' sits between the
+            --  type and the declarator.  Not in the IDL 4.2 grammar
+            --  proper; recorded as Member.Is_Pointer.
+            if Peek_Kind (St) = T.K_Asterisk then
+               Advance (St);
+               Member.Is_Pointer := True;
+            end if;
             Parse_Declarators (St, Member.Declarators);
             Expect (St, T.K_Semicolon, "';' after struct member");
             Result.Append (Member);
@@ -907,6 +916,105 @@ package body IDL2Lang.Parsers is
       Result := Def;
    end Parse_Enum_Dcl;
 
+   procedure Parse_Value_Type_Dcl
+     (St : in out Parser_State; Result : out S.Definition_Ref)
+   is
+      --  Rules (79)-(84) as used by the corpus: "valuetype" <identifier>
+      --  [ ":" <scoped_name> ] "{" <value_member>+ "}".  Value members
+      --  are struct-member shaped with a leading public/private
+      --  visibility keyword (rule 82); the corpus also uses factory
+      --  less state-only valuetypes.  Boxed values, truncatable
+      --  inheritance, and the <value_element> forms are not needed by
+      --  the corpus and are rejected by the normal error paths.
+      Def : constant S.Definition_Ref := new S.Definition_T;
+      Member : S.Member_T;
+      Annots : S.Annotation_Appl_Vectors.Vector;
+   begin
+      Def.Kind := S.D_Value_Type;
+      Def.Line := Peek (St).Line;
+      Def.Col := Peek (St).Col;
+      Advance (St);   --  the 'valuetype' keyword
+      Def.Name := To_Unbounded_String (Expect_Identifier (St));
+      if Peek_Kind (St) = T.K_Colon then
+         Advance (St);   --  the ':'
+         Parse_Scoped_Name (St, Def.Base_Type);
+         Def.Has_Base_Type := True;
+      end if;
+      Expect (St, T.K_Left_Brace, "'{' after 'valuetype <name>'");
+      loop
+         --  Rule (82): <visibility> <type_spec> <declarators> ";".
+         Parse_Annotation_Appls (St, Annots);
+         if Peek_Kind (St) = T.K_Keyword
+           and then (To_String (Peek (St).Text) = "public"
+                       or else To_String (Peek (St).Text) = "private")
+         then
+            Advance (St);   --  the visibility keyword
+         end if;
+         declare
+            VT_Typ : S.Type_Spec_Ref;
+            VT_Line : constant Positive := Peek (St).Line;
+            VT_Col : constant Positive := Peek (St).Col;
+         begin
+            VT_Typ := Parse_Type_Spec_Ref (St);
+            Member := (Annotations => Annots,
+                       Member_Type => VT_Typ,
+                       Declarators => <>,
+                       Is_Pointer => False,
+                       Line => VT_Line, Col => VT_Col);
+         end;
+         Parse_Declarators (St, Member.Declarators);
+         Expect (St, T.K_Semicolon, "';' after valuetype state member");
+         Def.Value_Members.Append (Member);
+         exit when Peek_Kind (St) = T.K_Right_Brace;
+      end loop;
+      Expect (St, T.K_Right_Brace, "'}' closing 'valuetype'");
+      Result := Def;
+   end Parse_Value_Type_Dcl;
+
+   procedure Parse_Interface_Dcl
+     (St : in out Parser_State; Result : out S.Definition_Ref)
+   is
+      --  Rule (86): "interface" <identifier> [ ":" ... ] "{"
+      --  <interface_body> "}".  The corpus (Global.idl,
+      --  ALMAS_DataModel.idl) carries operations that no back-end
+      --  consumes; we parse the braces and discard the body so the
+      --  file parses, keeping only the interface's name.
+      Def : constant S.Definition_Ref := new S.Definition_T;
+      Depth : Natural := 0;
+   begin
+      Def.Kind := S.D_Interface;
+      Def.Line := Peek (St).Line;
+      Def.Col := Peek (St).Col;
+      Advance (St);   --  the 'interface' keyword
+      Def.Name := To_Unbounded_String (Expect_Identifier (St));
+      if Peek_Kind (St) = T.K_Colon then
+         --  <interface_inheritance_spec>: skip the base list up to '{'.
+         loop
+            exit when Peek_Kind (St) = T.K_Left_Brace
+              or else Peek_Kind (St) = T.K_Semicolon;
+            Advance (St);
+         end loop;
+      end if;
+      if Peek_Kind (St) = T.K_Left_Brace then
+         Advance (St);
+         Depth := 1;
+         while Depth > 0 and then Peek_Kind (St) /= T.K_Eof loop
+            if Peek_Kind (St) = T.K_Left_Brace then
+               Depth := Depth + 1;
+            elsif Peek_Kind (St) = T.K_Right_Brace then
+               Depth := Depth - 1;
+            end if;
+            Advance (St);
+         end loop;
+         if Depth > 0 then
+            Syntax_Fail
+             (Peek (St).Line, Peek (St).Col,
+              "unterminated interface body (missing '}')");
+         end if;
+      end if;
+      Result := Def;
+   end Parse_Interface_Dcl;
+
    procedure Parse_Struct_Dcl
      (St : in out Parser_State; Result : out S.Definition_Ref)
    is
@@ -927,6 +1035,19 @@ package body IDL2Lang.Parsers is
          Def.Kind := S.D_Struct;
          Def.Line := Name_Tok_Line;
          Def.Col := Name_Tok_Col;
+         Parse_Members (St, Def.Members);
+         Expect (St, T.K_Right_Brace, "'}' closing 'struct'");
+      elsif Peek_Kind (St) = T.K_Colon then
+         --  Struct inheritance (rule 45's <inheritance_spec> in the
+         --  corpus, e.g. "struct DerivedType : BaseType {"): the base
+         --  struct's scoped name, then the member block.
+         Advance (St);   --  the ':'
+         Def.Kind := S.D_Struct;
+         Def.Line := Name_Tok_Line;
+         Def.Col := Name_Tok_Col;
+         Parse_Scoped_Name (St, Def.Base_Type);
+         Def.Has_Base_Type := True;
+         Expect (St, T.K_Left_Brace, "'{' after 'struct <name> : <base>'");
          Parse_Members (St, Def.Members);
          Expect (St, T.K_Right_Brace, "'}' closing 'struct'");
       else
@@ -1238,6 +1359,20 @@ package body IDL2Lang.Parsers is
                Parse_Constr_Type_Dcl (St, Def);
                Def.Annotations := Annots;
                Expect (St, T.K_Semicolon, "';' after type declaration");
+               Result := Def;
+               return;
+            elsif W = "valuetype" then
+               --  Rules (79)-(84): valuetype with state members.
+               Parse_Value_Type_Dcl (St, Def);
+               Def.Annotations := Annots;
+               Expect (St, T.K_Semicolon, "';' after valuetype");
+               Result := Def;
+               return;
+            elsif W = "interface" then
+               --  Rule (86): interface; operations are discarded.
+               Parse_Interface_Dcl (St, Def);
+               Def.Annotations := Annots;
+               Expect (St, T.K_Semicolon, "';' after interface");
                Result := Def;
                return;
             else

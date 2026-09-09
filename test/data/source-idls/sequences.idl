@@ -1,0 +1,22 @@
+
+module com {
+    module rti {
+        module tests {
+            module DdsTopics {
+
+     			module EngagementControl {
+                    module ZonedThreatList {
+                        struct Key {                            
+                            long numberOfThreats;
+                        }; 
+                       	const long ZONED_THREAT_LIST_MAXSIZE = 10;
+                        struct ZonedThreatList {
+                            long numberOfThreats;
+                            sequence<Key, ZONED_THREAT_LIST_MAXSIZE> zonedThreats;
+                        }; //@top-level true
+                    };
+                };
+            };
+        };
+    };
+};

@@ -1,0 +1,101 @@
+//=============================================================================
+// Copyright (C)  2007 SAAB, SWEDEN
+//=============================================================================
+//
+// Description : Velocity data from sensors to RDDS.
+//               For sensors that delivers dome kind of velocity
+//
+// External dependencies:
+//			com::saabgroup::enterprisebus::generalservices::time v4.0.0
+//
+//===========================================================================
+
+#include "timeType.idl"
+#include "com_saabgroup_enterprisebus.idl"
+
+module com{	module saabgroup { module cms { module pha {
+	module sensor {	module velocity {
+	    // ---------------------------------------------------------------
+	    // The version of this IDL file
+	    //
+	    const string IDL_VERSION = "2.1.1";
+
+
+
+
+	    // ---------------------------------------------------------------
+	    struct GeograpicVelocityType{
+	      com::saabgroup::enterprisebus::METER_PER_SECOND north;
+	      com::saabgroup::enterprisebus::METER_PER_SECOND east;
+	      com::saabgroup::enterprisebus::METER_PER_SECOND down;
+	      com::saabgroup::enterprisebus::METER_PER_SECOND error;  // in the north/east system
+	      com::saabgroup::enterprisebus::METER_PER_SECOND errorDown;
+	    }; //@top-level false
+
+	    // -----------------------------------------------------
+	    struct LocalVelocityType{
+	      com::saabgroup::enterprisebus::METER_PER_SECOND along;
+	      com::saabgroup::enterprisebus::METER_PER_SECOND transverse;
+	      com::saabgroup::enterprisebus::METER_PER_SECOND down;
+	      com::saabgroup::enterprisebus::METER_PER_SECOND errorAlong;
+	      com::saabgroup::enterprisebus::METER_PER_SECOND errorTransverse;
+	      com::saabgroup::enterprisebus::METER_PER_SECOND errorDown;
+	    }; //@top-level false
+
+	    //---------------------------------------------------
+		// Sensors that deliver own ship over ground velocity
+	    // in a north relative coordinate system
+	    module overGround {
+
+	      const string DEFAULT_TOPIC =
+	      "com.saabgroup.cms.pha.sensor.overGround.t_velocity";
+
+	      // -----------------------------------------
+	      struct Velocity{
+		com::saabgroup::enterprisebus::generalservices::time::TimeType senseTime;
+		short sensor;   //@key
+		com::saabgroup::enterprisebus::VALID isValid;
+		GeograpicVelocityType velocity;
+	      }; //@top-level true
+
+	    };
+
+	    //-------------------------------------------------
+		// Sensors that deliver own ship throuh water velocity
+	    //  in a ship relative coordinate system
+	    module throughWater{
+
+	      const string DEFAULT_TOPIC =
+	      "com.saabgroup.cms.pha.sensor.throughWater.t_velocity";
+
+
+	      // -----------------------------------------
+	      struct Velocity{
+		com::saabgroup::enterprisebus::generalservices::time::TimeType senseTime;
+		short sensor;   //@key
+		com::saabgroup::enterprisebus::VALID isValid;
+		LocalVelocityType velocity;
+	      }; //@top-level true
+
+	    };
+
+	    //-----------------------------------------------
+		// Sensors that deliver sea current velocity in
+	    // a north relative coordinate system
+	    module seaCurrent {
+
+	      const string DEFAULT_TOPIC =
+	      "com.saabgroup.cms.pha.sensor.seaCurrent.t_velocity";
+
+	      // ------------------------------------------------------
+	      struct Velocity{
+		com::saabgroup::enterprisebus::generalservices::time::TimeType senseTime;
+		short sensor;	//@key
+		com::saabgroup::enterprisebus::VALID isValid;
+		GeograpicVelocityType velocity;
+	      }; //@top-level true
+
+	    };
+	  };
+	}; };
+    }; }; };

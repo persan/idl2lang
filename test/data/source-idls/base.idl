@@ -1,0 +1,23 @@
+module vtypes_test {
+  module base {
+    struct position_t {
+      double latitude;
+      double longitude;
+      double altitude;
+    };//@top-level false
+
+    struct speed_t {
+      double x;
+      double y;
+      double z;
+    };//@top-level false
+
+    valuetype basetrack_t {
+      public string<10>  trackno; //@key
+      public vtypes_test::base::position_t position;
+      public vtypes_test::base::speed_t     speed;
+      public string<32>  callsign;
+    }; //@top-level true
+  };
+};
+

@@ -1,0 +1,664 @@
+/* $Id: Global.idl,v 1.19 2010/02/06 20:32:02 fernando Exp $
+
+ (c) Copyright, Real-Time Innovations, $Date: 2010/02/06 20:32:02 $.
+ All rights reserved.
+ No duplications, whole or partial, manual or electronic, may be made
+ without express written permission.  Any such copies, or
+ revisions thereof, must display this notice unaltered.
+ This code contains trade secrets of Real-Time Innovations, Inc.
+
+modification history
+------------ -------
+10ae,06feb10,fcs Fixed include directive
+10y,09mar09,fcs Commented out some typedefs to support XSD comparison
+10y,08nov08,jlv Added more typedefs
+10x,23may08,rbw Fixed typo in preprocessor declaration
+10m,09aug06,fcs Used of enum cases in ColorTypeUnion
+10m,08jun06,fcs Used constant in array declaration
+10l,13apr06,fcs Added Interface code
+10l,13apr06,fcs Added Interface1
+10h,28mar06,fcs Added comments with single //
+10h,31jan06,fcs Added ceuData member to BasicTypesStruct 
+10h,20dec05,fcs Added properocessor directives
+10h,14dec05,fcs Added comments to test bug 10744
+10h,09dec05,fcs Fixed tabs
+==============================================================================*/
+
+//Comments
+//
+
+// This ' should work, in a C++ style comment
+// This '' should work, in a C++ style comment
+// This " should work, in a C++ style comment
+// This "" should work, in a C++ style comment
+
+/* This ' should work, in a C style comment
+*/
+
+/* This '' should work, in a C style comment
+*/
+
+/* This " should work, in a C style comment
+*/
+
+/* This "" should work, in a C style comment
+*/
+
+/********************************************
+   Comment
+********************************************/   
+
+/* ********************************** */
+
+/******************************** */
+
+/* *********************************/
+
+/* Preprocessor directives not supported but parsed */
+#ifndef _GLOBAL_H
+#define _GLOBAL_H
+#endif
+
+#define GLOBAL_DEFINE 1
+
+#if defined(_GLOBAL_H)
+#undef _GLOBAL_H
+#else /* This is a comment */
+#endif
+
+/* Preprocessor directives supported and parsed */
+#include "PrimitiveType.idl"
+//@copy-java import com.rti.ndds.nddsgen.test.primitive.*;
+//@copy-ada-declaration-begin with PrimitiveType_IDL_File; use PrimitiveType_IDL_File;
+
+#include "Constants.idl"
+//@copy-java import com.rti.ndds.nddsgen.test.constants.*;
+//@copy-ada-declaration-begin with Constants_IDL_File; use Constants_IDL_File;
+module Global_IDL_File {
+//Modules
+module ModuleA {
+    const long Constant_1 = 3 * 4;
+
+    struct BitFieldStruct{
+        char bf_1_1;
+    }; //@top-level false    
+
+	interface Interface1 {
+		void op1(in long param1);
+		long op2(in short param2);
+	};
+//};
+// reopen of moduole not supported for now
+
+//module ModuleA{
+    const long Constant_2 = Constant_1;
+	typedef sequence<Interface1> Intreface1Seq;
+};
+
+module ModuleB{
+    const long Constant_2 = ModuleA::Constant_1;
+    
+    struct PrimitiveType {
+        short m1;
+    };
+    
+    struct AggregateStruct{
+        Global_IDL_File::ModuleA::BitFieldStruct m1;
+    }; //@top-level false 
+    struct ChildStructure{
+        short m1;
+        PrimitiveType m2; //@resolve-name false
+        PrimitiveType m3;
+    }; //@top-level false
+    struct ParentStructure{
+        ChildStructure m1;
+    }; //@top-level false
+};
+
+// const long Constant_1 = ModuleA::Constant_1;
+const long Size_4 = 2 * 2;
+// const long Constant_2 = Constant_1 + ModuleA::Constant_1;
+const double Constant_3 = PI + PI2; //@resolve-name false
+
+//Typedefs
+typedef short ShortType;
+typedef long  LongType;
+typedef float FloatType;
+typedef unsigned short UShortType;
+typedef unsigned long ULongType;
+typedef double DoubleType;
+typedef char CharType;
+typedef boolean BooleanType;
+typedef octet OctetType;
+typedef wchar WCharType;
+typedef long long LongLongType;
+typedef unsigned long long ULongLongType;
+typedef long double LongDoubleType;
+typedef string UnboundedStringType;
+typedef string<100> String100Type;
+typedef wstring UnboundedWstringType;
+typedef wstring<100> Wstring100Type;
+typedef sequence<short,4> SeqShort4Type;
+typedef sequence<ShortType,4> SeqShortType4Type;
+typedef sequence<long double,4> SeqLongDouble4Type;
+typedef sequence<LongDoubleType,4> SeqLongDoubleType4Type;
+typedef sequence<string,2> SeqStringUnboundedType;
+typedef sequence<UnboundedStringType,2> SeqStringTypeUnboundedType;
+typedef short ArrShort4Type[4];
+typedef short ArrShort2_4Type[2][4];
+typedef string<100> ArrString100_4Type[4];
+typedef String100Type ArrString100Type4Type[4]; 
+typedef String100Type ArrString100Type2_4Type[2][4];
+typedef sequence<short,4> SeqShortArr_2_4Type[2];
+typedef PrimitiveType PrimitiveType_2; //@resolve-name false
+
+//Enums
+typedef enum ColorEnum {
+    RED, GREEN, BLUE, YELLOW, ORANGE, BROWN, BLACK, WHITE
+} ColorType;
+
+enum DigitEnum { 
+    ZERO, 
+    ONE, TWO, THREE, 
+    FOUR, FIVE, SIX,
+    EVEN, EIGHT, NINE
+};
+
+typedef DigitEnum DigitType;
+
+typedef struct MemberStruct{
+    short sData;    
+} MemberStructType;
+
+// Keys
+struct KeyStruct_1{
+    short     m1;  //@key
+    long      m2;  //@key
+//    float     m3;  //@key        
+};
+
+struct KeyStruct_2{
+    unsigned short  m1;  //@key
+    unsigned long m2; //@key            
+//    double m3;      //@key    
+};
+
+struct KeyStruct_3{
+    char     m1;  //@key    
+    boolean  m2;  //@key    
+    octet    m3;  //@key
+};
+
+struct KeyStruct_4{
+    wchar     m1;  //@key    
+//    long long  m2;  //@key    
+//    unsigned long long m3;  //@key
+};
+
+struct KeyStruct_5{
+//    long double  m1;  //@key    
+    string<4>    m2;  //@key
+    wstring<1>   m3;  //@key
+};
+
+struct KeyStruct_6{
+      ColorEnum    m1;  //@key        
+//    MemberStruct m2;  //@key
+//    sequence<short,4> m3; //@key    
+};
+
+struct KeyStruct_7{
+//    short  m1[2];  //@key        
+//    long   m2[2];  //@key
+    ShortType m3;    //@key
+};
+
+struct KeyStruct_8{
+//    short  m1[2];  //@key        
+//    long   m2[2];  //@key
+    LongType m1;     //@key
+};
+
+//Union with Enum discriminator
+union ColorEnumUnion switch (ColorEnum){
+    case RED:
+        short sData;
+    case BLUE:
+    case GREEN:
+        short sData_2;        
+    default:
+        long lData;
+}; //@top-level true
+
+union DigitEnumUnion switch (DigitEnum){
+    case ZERO:
+        short sData;
+    default:
+        long lData;
+}; 
+
+//Union with Enum typedef discriminator
+union ColorTypeUnion switch (ColorType){
+    case RED:
+        ShortType sData;
+}; 
+
+//Union with boolean
+union BooleanUnion switch (boolean){
+    case TRUE:
+        short sData;
+    case FALSE:
+        long lData;
+}; //@top-level true
+
+
+// More typedefs
+/*typedef PrimitiveType_2 PrimitiveType_3;*/
+
+typedef SeqShortArr_2_4Type SeqShortArr_2_4Type_2;
+/*typedef SeqShortArr_2_4Type_2 SeqShortArr_2_4Type_3;*/
+
+typedef SeqShortType4Type SeqShortType4Type_2;
+/*typedef SeqShortType4Type_2 SeqShortType4Type_3; */
+
+typedef LongLongType LongLongType_2;
+typedef LongLongType_2 LongLongType_3;
+
+typedef BooleanUnion BooleanUnion_2;
+/*typedef BooleanUnion_2 BooleanUnion_3;*/
+
+//Bitfields struct
+struct BitFieldStruct{
+    //Individual bit fields
+    char  bf_1_1;
+    short separator_1;
+    char  bf_1_2;
+    short separator_2;
+    short bf_1_3;
+    short separator_3;
+    short bf_1_4;
+    short separator_4;
+    long  bf_1_5;
+    short separator_5;    
+    long  bf_1_6;
+
+    //Bit fields groups (with the same type)
+    short separator_6;    
+    octet  bf_2_1;    
+    octet  bf_2_2;            
+    short separator_7;    
+    unsigned short bf_2_3;            
+    unsigned short bf_2_4;    
+    short separator_8;    
+    unsigned long  bf_2_5;            
+    unsigned long  bf_2_6;    
+        
+    //Bit fields groups
+    short separator_9;    
+    short bf_3_1;      
+    unsigned short bf_3_2;
+    long bf_3_3;
+    unsigned long bf_3_4;
+    char bf_3_5;
+    wchar bf_3_6;
+    octet bf_3_7;
+//    short : 0;       
+    long bf_3_8;
+    long bf_3_9;  
+    short bf_3_10;
+    short bf_3_11; 
+    short separator_10;       
+    short bf_3_12;
+    long bf_3_13;    
+}; 
+
+//
+struct BasicTypesStruct {	
+    //Primitives, strings and enums
+    short sData,sData_2;
+    long  lData;
+    float fData;
+    unsigned short usData;
+    unsigned long ulData;
+    double dData;
+    char cData;
+    boolean bData;
+    octet oData;
+    wchar wcData;
+    long long llData;
+    unsigned long long ullData;
+    long double ldData;     
+    string<100>  strData_1;
+    string       strData_2;
+    wstring<100> wstrData_1;
+    wstring      wstrData_2;
+    ColorEnum    colorData_1;
+    DigitEnum    digitData_1;        
+    PrimitiveType ptData; //@resolve-name false	        
+    ColorEnumUnion ceuData;
+
+    //Sequences
+    sequence<short,Global_IDL_File::Size_4> sSeqData;    
+    sequence<long long,Global_IDL_File::Size_4> llSeqData;    	
+    sequence<long double,Global_IDL_File::Size_4> ldSeqData;    		
+    sequence<wchar,Global_IDL_File::Size_4> wcSeqData;    		
+    sequence<string<100>,2> strSeqData;	
+    sequence<wstring<100>,2> wstrSeqData;		
+    sequence<ColorEnum,4> ceSeqData;
+    sequence<MemberStructType,2> meSeqData;
+    sequence<PrimitiveType,4> ptSeqData; //@resolve-name false    	
+    //Arrays
+    short sArrData[Global_IDL_File::Size_4];
+    short sArrData_2[2][4];
+    long long llArrData[4];
+    long long llArrData_2[2][4];
+    long double ldArrData[4];
+    long double ldArrData_2[2][4];
+    wchar wcArrData[4];
+    wchar wcArrData_2[2][4];
+    string<100> strArrData[4];
+    string<100> strArrData_2[2][4];
+    wstring<100> wstrArrData[4];
+    wstring<100> wstrArrData_2[2][4];
+    ColorEnum ceArrData[4];
+    ColorEnum ceArrData_2[2][4];	
+    MemberStruct meArrData[4];
+    MemberStruct meArrData_2[2][4];	
+    //Arrays of sequences
+    sequence<short,4> sSeqArrData[2];
+    sequence<long double,4> ldSeqArrData[2];
+    sequence<string,4> strSeqArrData[2];
+    sequence<wstring,4> wstrSeqArrData[2];    
+    sequence<ColorEnum,4> ceSeqArrData[2];    
+    sequence<MemberStructType,4> meSeqArrData[2];
+    //Pointers
+    short *pSData;
+    string<100> * pStrData;
+    wstring<100> * pWstrData;
+    ColorEnum  * pColorData;    
+    PrimitiveType * pPtData; //@resolve-name false	                
+    sequence<short,Size_4> * pSSeqData;
+    sequence<string<100>,2>  * pStrSeqData;	    
+    sequence<wstring<100>,2> * pWstrSeqData;		    
+    sequence<ColorEnum,4> * pCeSeqData;
+    sequence<MemberStructType,2> * pMeSeqData;    
+}; 
+
+struct DefinedTypesStruct {    
+    ShortType      sData; 
+    LongType       lData;
+    FloatType      fData;
+    UShortType     usData;
+    ULongType      ulData;
+    DoubleType     dData;
+    CharType       cData;
+    BooleanType    bData;
+    OctetType      oData;
+    WCharType      wcData;            
+    LongLongType   llData;
+    ULongLongType  ullData;
+    LongDoubleType ldData;        
+    String100Type  strData_1;
+    UnboundedStringType strData_2;
+    Wstring100Type  wstrData_1;
+    UnboundedWstringType wstrData_2;    
+    ColorType colorData_1;
+    DigitType digitData_1;
+    //Sequences
+    sequence<ShortType,4> sSeqData;        
+    sequence<LongLongType,4> llSeqData;            
+    sequence<LongDoubleType,4> ldSeqData;                
+    sequence<WCharType,4> wcSeqData;                
+    sequence<String100Type,2> strSeqData;    
+    sequence<Wstring100Type,2> wstrSeqData;            
+    sequence<ColorType,4> ceSeqData;    
+    sequence<MemberStructType,2> meSeqData;    
+    SeqShort4Type sSeqData_2;
+    SeqShortType4Type sSeqData_3;
+    sequence<SeqShort4Type,2> sSeqSeqData;
+    SeqLongDouble4Type ldSeqData_2;
+    SeqLongDoubleType4Type ldSeqData_3;
+    sequence<SeqLongDouble4Type,2> ldSeqSeqData;    
+    SeqStringUnboundedType strSeqData_2;
+    SeqStringTypeUnboundedType strSeqData_3;
+    sequence<SeqStringUnboundedType,2> strSeqSeqData;    
+    //Arrays
+    ShortType sArrData[4];    
+    ShortType sArrData_2[2][4];        
+    LongLongType llArrData[4];
+    LongLongType llArrData_2[2][4];            
+    LongDoubleType ldArrData[4];    
+    LongDoubleType ldArrData_2[2][4];        
+    WCharType wcArrData[4];
+    WCharType wcArrData_2[2][4];        
+    String100Type strArrData[4];
+    String100Type strArrData_2[2][4];    
+    Wstring100Type wstrArrData[4];
+    Wstring100Type wstrArrData_2[2][4];    
+    ColorType ceArrData[4];
+    ColorType ceArrData_2[2][4];        
+    MemberStructType meArrData[4];
+    MemberStructType meArrData_2[2][4];        
+    ArrShort4Type sArrData_3;
+    ArrShort2_4Type sArrData_4;    
+    ArrShort4Type sArrArrData[2];
+    ArrString100_4Type strArrData_3;
+    ArrString100Type4Type strArrData_4;
+    ArrString100Type2_4Type strArrData_5;    
+    ArrString100Type4Type strArrArrData[2];
+    //Arrays of sequences
+    sequence<ShortType,4> sSeqArrData[2];
+    sequence<LongDoubleType,4> ldSeqArrData[2];
+    sequence<String100Type,4> strSeqArrData[2];
+    sequence<Wstring100Type,4> wstrSeqArrData[2];    
+    sequence<ColorType,4> ceSeqArrData[2];    
+    sequence<MemberStructType,4> meSeqArrData[2];    
+    SeqShortArr_2_4Type sSeqArrData_2;
+    SeqStringUnboundedType strSeqArrData_2[2]; 
+    //Sequences of arrays    
+    sequence<ArrShort4Type,2> sArrSeqData;
+}; 
+
+union BasicTypesUnion switch(long){
+    case 1:
+    case 2:
+        short sData;
+    case 3:
+        long  lData;
+    case 4:
+        float fData;
+    case 5:
+        unsigned short usData;
+    case 6:
+        unsigned long ulData;
+    case 7:
+        double dData;
+    case 8:
+        char cData;
+    case 9:
+        boolean bData;
+    case 10:
+        octet oData;
+    case 11:
+        wchar wcData;
+    case 12:
+        long long llData;
+    case 13:
+        unsigned long long ullData;        
+    case 14:
+        long double ldData;    
+    case 15:
+        string<100> strData_1;
+    case 16:    
+        string      strData_2;
+    case 17:    
+        wstring<100> wstrData_1;     
+    case 18:
+        wstring wstrData_2;                    
+    case 19:
+        ColorEnum    colorData_1;    
+    case 20:
+        DigitEnum    digitData_1;
+    case 21:
+        sequence<short,Global_IDL_File::Size_4> sSeqData;        
+    case 22:
+        sequence<long long,Size_4> llSeqData;            
+    case 23:
+        sequence<long double,Size_4> ldSeqData;                
+    case 24:
+        sequence<wchar,Size_4> wcSeqData;                
+    case 25:
+        sequence<string<100>,2> strSeqData;           
+    case 26:
+        sequence<wstring<100>,2> wstrSeqData;                    
+    case 27:
+        sequence<ColorEnum,4> ceSeqData;
+    case 28:
+        sequence<MemberStruct,2> meSeqData;        
+    case 29:
+        short sArrData[4];        
+    case 30:
+        short sArrData_2[2][4];        
+    case 31:
+        long long llArrData[4];
+    case 32:
+        long long llArrData_2[2][4];            
+    case 33:
+        long double ldArrData[4];        
+    case 34:
+        long double ldArrData_2[2][4];        
+    case 35:
+        wchar wcArrData[4];
+    case 36:
+        wchar wcArrData_2[2][4];    
+    case 37:
+        string<100> strArrData[4];
+    case 38:
+        string<100> strArrData_2[2][4];        
+    case 39:
+        wstring<100> wstrArrData[4];
+    case 40:
+        wstring<100> wstrArrData_2[2][4];        
+    case 41:
+        ColorEnum ceArrData[4];
+    case 42:
+        ColorEnum ceArrData_2[2][4];            
+    case 43:
+        MemberStruct meArrData[4];
+    case 44:
+        MemberStruct meArrData_2[2][4];            
+    case 45:
+        PrimitiveType ptData; //@resolve-name false    
+    default:
+        sequence<PrimitiveType,4> ptSeqData; //@resolve-name false    
+}; 
+
+union DefinedTypesUnion switch(LongType){
+    case 1:
+        ShortType      sData;
+    case 2:        
+        LongType       lData;
+    case 3:
+        FloatType      fData;
+    case 4:
+        UShortType     usData;
+    case 5:
+        ULongType      ulData;
+    case 6:
+        DoubleType     dData;
+    case 7:
+        CharType       cData;
+    case 8:
+        BooleanType    bData;
+    case 9:
+        OctetType      oData;
+    case 10:
+        WCharType      wcData;            
+    case 11:
+        LongLongType   llData;
+    case 12:
+        ULongLongType  ullData;
+    case 13:
+        LongDoubleType ldData;            
+    case 14:        
+        String100Type  strData_1;        
+    case 15:
+        UnboundedStringType strData_2;    
+    case 16:    
+        Wstring100Type wstrData_1;
+    case 17:
+        UnboundedWstringType wstrData_2;                            
+    case 18:
+        ColorType colorData_1;
+    case 19:
+        DigitType digitData_1;        
+    case 20:
+        sequence<ShortType,4> sSeqData;            
+    case 21:
+        sequence<LongLongType,4> llSeqData;                        
+    case 22:
+        sequence<LongDoubleType,4> ldSeqData;                
+    case 23:
+        sequence<WCharType,4> wcSeqData;                    
+    case 24:
+        sequence<String100Type,2> strSeqData;        
+    case 25:
+        sequence<Wstring100Type,2> wstrSeqData;                
+    case 26:
+        sequence<ColorType,4> ceSeqData;        
+    case 27:
+        sequence<MemberStructType,2> meSeqData;    
+    case 28:
+        SeqShort4Type sSeqData_2;
+    case 29:
+        SeqShortType4Type sSeqData_3;
+    case 30:
+        sequence<SeqShort4Type,2> sSeqSeqData;        
+    case 31:
+        ShortType sArrData[4];
+    case 32:
+        ShortType sArrData_2[2][4];        
+    case 33:
+        LongLongType llArrData[4];
+    case 34:
+        LongLongType llArrData_2[2][4];        
+    case 35:
+        LongDoubleType ldArrData[4];            
+    case 36:
+        LongDoubleType ldArrData_2[2][4];                    
+    case 37:
+        WCharType wcArrData[4];
+    case 38:
+        WCharType wcArrData_2[2][4];                
+    case 39:
+        String100Type strArrData[4];
+    case 40:
+        String100Type strArrData_2[2][4];            
+    case 41:
+        Wstring100Type wstrArrData[4];
+    case 42:
+        Wstring100Type wstrArrData_2[2][4];            
+    case 43:
+        ColorType ceArrData[4];
+    case 44:        
+        ColorType ceArrData_2[2][4];                
+    case 45:
+        MemberStructType meArrData[4];
+    default:
+        MemberStructType meArrData_2[2][4];		 	    
+};
+
+/* Should be ignored */
+interface Interface1 {
+    void op1(in long param1);
+    long op2(in short param2);
+};
+
+/* Should be ignored */
+typedef sequence<Interface1> Interface1Seq;
+
+struct StructWithInterface {
+    Interface1 member1;
+    short member2;
+};
+};

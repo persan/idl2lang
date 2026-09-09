@@ -1,0 +1,26 @@
+module com {
+  module saabgroup {
+    module test {
+      struct key_t{
+        string<4> name;
+        unsigned long size;
+      };
+
+      struct  msg{
+        key_t key; //@key
+        short aShort;
+        unsigned short aUnsignedShort;
+        long aLong;
+        unsigned long aUnsignedLong;
+        long long aLongLong;
+        unsigned long long aUnsignedLongLong;
+        float aFloat;
+        double aDouble;
+        char aChar;
+        boolean aBoolean;
+        octet aOctet;
+        string<128> aString;
+      };//@top-level true
+    };
+  };
+};

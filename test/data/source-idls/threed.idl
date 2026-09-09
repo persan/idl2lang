@@ -1,0 +1,11 @@
+#include "twod.idl"
+module vtypes_test {
+  module threed {
+    valuetype threed_track_t : vtypes_test::twod::twod_track_t {
+      public string<64>  radar;
+      public vtypes_test::twod::twod_track_t Po;
+
+    }; //@top-level true
+  };
+};
+

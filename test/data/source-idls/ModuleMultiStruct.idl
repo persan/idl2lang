@@ -1,0 +1,24 @@
+const long HELLO_MAX_STRING_SIZE = 256;
+
+module Module1 {
+
+const long MODULE1_HELLO_MAX_STRING_SIZE = 256;
+
+struct HelloStruct1 {
+    string<HELLO_MAX_STRING_SIZE> message1;
+    string<MODULE1_HELLO_MAX_STRING_SIZE> message2;
+};
+
+};
+
+
+module Module2 {
+
+const long MODULE2_HELLO_MAX_STRING_SIZE = 256;
+
+struct HelloStruct2 {
+    string<HELLO_MAX_STRING_SIZE> message3;
+    string<MODULE2_HELLO_MAX_STRING_SIZE> message4;
+};
+
+};

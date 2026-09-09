@@ -1,0 +1,45 @@
+//================================================================================
+// Copyright (C)  2007 Saab SWEDEN
+//
+// Name        : RadarControl.idl
+//
+// Author      : Tommy Wahlstedt / STTYWA
+//
+// Description :
+//
+// External dependencies:
+//        com::saabgroup::enterprisebus::generalservices::time v4.0.0
+//
+// History:
+//	2007-09-17 STTYWA Draft version 0.0.1
+//
+//================================================================================
+module sizes {
+  //--------------------------------------------------------------------------------
+  //
+  struct Msg128 {
+    string<128> msg;
+  };//@top-level true
+
+  struct Msg256 {
+    string<256> msg;
+  };//@top-level true
+
+  struct Msg512 {
+    string<512> msg;
+  };//@top-level true
+
+  struct Msg1024 {
+    string<1024> msg;
+  };//@top-level true
+
+  struct Msg2048 {
+    string<2048> msg;
+  };//@top-level true
+  struct Msg4096 {
+    string<4069> msg;
+  };//@top-level true
+}; // sizes
+
+
+

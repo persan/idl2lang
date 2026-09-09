@@ -1,0 +1,70 @@
+//===========================================================================
+//=============================================================================
+// Copyright (C)  2009 Saab AB, Sweden
+//=============================================================================
+//
+// Name        : hcm_threat.idl
+//
+// Author      : Thomas Lindquist / TSLI,
+//               Katarina Olsson  / STKAOL
+//
+// Description : Messages from threat evaluation.
+//
+// History:
+//    2009-04-17 / TSLI,STKAOL / Created version 1.0.
+//    2009-04-24 / STMARU / 
+//
+//
+//===========================================================================
+#include "enterprisebus_org_omg_time.idl"
+#include "hcm_common.idl"
+module hcm {
+module threat {
+
+    const long THREAT_LIST_LENGTH = 50;
+	
+	enum WarfareKind {
+		UNKNOWN_WARFARE_TYPE,
+		AAW,
+		ASuW,
+		AWW,
+		UWW,
+		ALL_rw
+	};
+    
+	enum ReferenceKind {
+		UNKNOWN_REF_TYPE,
+		OWNSHIP,
+		FIXED_REFERENCE_POINT,
+		TRACK_REFERENCE_POINT,
+		COMBINED
+	};
+
+
+	struct Threat {
+		long trackId;
+		long threatRank;
+		boolean rankOverrideFlag;
+		short threatLevel;
+		boolean threatLevelOverrideFlag;
+		boolean highThreat;
+		boolean highThreatOverrideFlag;
+    }; //@top-level false
+
+	struct ThreatList {
+		hcm::common::Header topicHeader;
+		WarfareKind warfareKind;
+		ReferenceKind referenceKind;
+		long referencePointUniqueID;
+		float referenceLongitude;
+		float referenceLatitude;
+		float referenceAltitude;
+		long referenceSystemTrackNo;
+		org::omg::time::UtcT time;
+		short numberOfThreats;
+		Threat threats[THREAT_LIST_LENGTH];
+    };
+    
+}; // module threat
+}; // module hcm
+

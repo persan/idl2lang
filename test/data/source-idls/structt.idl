@@ -1,0 +1,9 @@
+#include "base.idl"
+module vtypes_testit {
+  module twod {
+    struct twod_track_t  {
+      vtypes_test::base::basetrack_t V1;
+    }; //@top-level true
+  };
+};
+

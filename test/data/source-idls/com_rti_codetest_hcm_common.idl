@@ -1,0 +1,29 @@
+//===========================================================================
+// Copyright (C)  2009 Saab AB, Sweden
+//===========================================================================
+//
+//===========================================================================
+
+#include "enterprisebus_org_omg_time.idl"
+module com {
+  module rti {
+    module enterprisebus {
+      module hcm {
+	module common {
+
+	  // No formal data type definition.
+	  struct InfrastructureData {
+	    org::omg::time::UtcT timestamp;
+	  };
+
+	  // Skipped the HCM prefix
+	  struct Header {
+	    InfrastructureData f_infrastructureData;
+	    string systemConfig; // Size?
+	  };
+
+	}; // module common
+      }; // module hcm
+    }; //module enterprisebus
+  }; //module rti
+}; //module com

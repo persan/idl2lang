@@ -257,6 +257,23 @@ package body IDL2Lang.Syntax is
             Add ("(native " & To_String (D.Name) & ")");
          when D_Annotation =>
             Add ("(annotation " & To_String (D.Name) & ")");
+         when D_Value_Type =>
+            Add ("(valuetype " & To_String (D.Name));
+            for I in D.Value_Members.First_Index
+                     .. D.Value_Members.Last_Index
+            loop
+               Add ("  (member " & Image (D.Value_Members (I).Member_Type.all));
+               for J in D.Value_Members (I).Declarators.First_Index
+                         .. D.Value_Members (I).Declarators.Last_Index
+               loop
+                  Add ("    "
+                         & To_String (D.Value_Members (I).Declarators (J).Name));
+               end loop;
+               Add ("  )");
+            end loop;
+            Add (")");
+         when D_Interface =>
+            Add ("(interface " & To_String (D.Name) & ")");
       end case;
       return To_String (Result);
    end Image;

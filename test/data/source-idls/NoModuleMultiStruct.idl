@@ -1,0 +1,9 @@
+const long HELLO_MAX_STRING_SIZE = 256;
+
+struct HelloStruct1 {
+    string<HELLO_MAX_STRING_SIZE> message1;
+};
+
+struct HelloStruct2 {
+    string<HELLO_MAX_STRING_SIZE> message2;
+};

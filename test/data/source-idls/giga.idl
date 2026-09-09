@@ -1,0 +1,11 @@
+#include "threed.idl"
+module vtypes_test {
+  module giga {
+    valuetype giga_trackt : vtypes_test::threed::threed_track_t {
+      public octet d1[512];
+      public octet d2[512];
+      public octet d3[512];
+    }; //@top-level true
+  };
+};
+

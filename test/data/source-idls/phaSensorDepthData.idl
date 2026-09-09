@@ -1,0 +1,41 @@
+//=============================================================================
+// Copyright (C)  2007 SAAB, SWEDEN
+//=============================================================================
+//
+// Description : Sensor data from own depth sensors, 
+//              i.e the submains depth below surface.
+//
+// External dependencies:
+//        com::saabgroup::enterprisebus::generalservices::time v4.0.0
+//
+//===========================================================================
+
+
+#include "timeType.idl"
+#include "com_saabgroup_enterprisebus.idl"
+
+module com { module saabgroup { module cms { module pha {
+    module sensor { module depth {
+
+        // --------------------------------------------
+        // The version of this IDL file
+        //
+        const string IDL_VERSION = "2.1.0";
+        const string DEFAULT_TOPIC = 
+            "com.saabgroup.cms.pha.sensor.depth.t_depth_sensors";
+
+        // --------------------------------------------
+        struct DepthType {
+            com::saabgroup::enterprisebus::METER value;     
+            com::saabgroup::enterprisebus::METER error;      
+        }; //@top-level false
+
+        // --------------------------------------------
+        struct Depth {
+            com::saabgroup::enterprisebus::generalservices::time::TimeType senseTime;
+            short sensor; //@key                            
+            com::saabgroup::enterprisebus::VALID isValid;    
+            DepthType depth;
+        }; //@top-level true                
+    }; };
+}; }; }; };

@@ -1,0 +1,170 @@
+#include "omg_timebase.idl"
+#ifndef __ALMAS_DataModel_DEF
+#define __ALMAS_DataModel_DEF
+module org
+{
+  module omg
+  {
+    module ALMAS_DataModel
+    {
+      typedef long long ALMAS_AlertIDType;
+
+      typedef long ALMAS_TemplateIDType;
+
+      typedef long ALMAS_TimeoutType;
+
+      // Removed because rtiddsgen can't handle internal types.
+      typedef TimeBase::TimeT ALMAS_DateTimeType;
+
+      typedef sequence<octet> ALMAS_ByteSequence;
+
+      struct ALMAS_DataModel_s {
+	sequence<octet> DataSeq;
+	string DataTag;
+	string DataValue; };
+
+      typedef sequence<string> ALMAS_StringSet;
+
+      // Added because its used by interface function in manager.
+      typedef sequence<ALMAS_TemplateIDType> ALMAS_TemplateIDTypeSet;
+
+      enum ALMAS_CategoryType {
+	Action,
+	Warning,
+	Information,
+	Situation};
+
+      enum ALMAS_StateType {
+	Raised,
+	Routed,
+	Received,
+	Acknowledged,
+	Handled,
+	Cancelled,
+	Timed_Out};
+
+      enum ALMAS_StatusType {
+	Actual,
+	Exercise,
+	MySystem,
+	Test};
+
+      enum ALMAS_ScopeType {
+	PublicScope,
+	RestrictedScope,
+	PrivateScope};
+
+      enum ALMAS_TimeoutActionType {
+	CancelOnly,
+	NotifyOnly,
+	CancelWithNotify};
+
+      enum ALMAS_AckModelType {
+	AckByNone,
+	AckByAnyone,
+	AckByAll};
+
+      struct ALMAS_CallStatus {
+	boolean Success;
+	short Reason;
+	string Description; };
+      //@top-level false
+
+      struct ALMAS_ValidAlertResponseType {
+	ALMAS_StringSet AlternativeAction;
+	short ActioneePriority; };
+      //@top-level false
+
+      struct ALMAS_ReceiverKindType {
+	string RKType;
+	string RKParentType;
+	ALMAS_ValidAlertResponseType ValidResponse; };
+      //@top-level false
+
+      typedef sequence<ALMAS_ReceiverKindType> ALMAS_ReceiverKindTypeSet;
+
+      struct ALMAS_DynamicMessageDataType {
+	string DataType;
+	string DataTag;
+	string DataValue; };
+      //@top-level false
+
+      typedef sequence<ALMAS_DynamicMessageDataType> ALMAS_DynamicMessageDataTypeSet;
+
+      struct ALMAS_StaticMessageType {
+	string MessageText;
+	string MessageLanguage; };
+      //@top-level false
+
+      typedef sequence<ALMAS_StaticMessageType> ALMAS_StaticMessageTypeSet;
+
+      struct ALMAS_AlertDataAttributesType {
+	ALMAS_CategoryType Category;
+	short Priority;
+	ALMAS_StatusType Status;
+	ALMAS_ScopeType Scope;
+	ALMAS_TimeoutType Timeout;
+	boolean ConfirmationRequired;
+	string SecondaryGrouping;
+	boolean Persistent;
+	boolean ReliablyDistributed;
+	ALMAS_TimeoutActionType TimeoutAction;
+	ALMAS_AckModelType AcknowledgementModel;
+	ALMAS_StaticMessageTypeSet StaticMessages;
+	ALMAS_DynamicMessageDataTypeSet DynamicMessages; };
+      //@top-level false
+
+      struct ALMAS_AlertDataExtraAttributesType {
+	string Name;
+	short TypeOfByteData;
+	string Description;
+	ALMAS_ByteSequence Value; };
+      //@top-level false
+
+      typedef sequence<ALMAS_AlertDataExtraAttributesType> ALMAS_AlertDataExtraAttributesTypeSet;
+
+      struct ALMAS_AlertDataType {
+	ALMAS_TemplateIDType TemplateID; //@key
+	ALMAS_AlertDataAttributesType Attributes;
+	ALMAS_AlertDataExtraAttributesTypeSet ExtraAttributes; };			//@top-level false
+
+      struct ALMAS_AlertTemplateType {
+	boolean Inhibited;
+	boolean RaiseToAll;
+	ALMAS_AlertDataType AlertData; //@key
+	ALMAS_ReceiverKindTypeSet ReceiverKinds; };
+      //@top-level true
+
+      struct ALMAS_AlertReportType {
+	boolean Acknowledged;
+	boolean Routed;
+	boolean Actioned;
+	boolean ReceiverIsActionee;
+	ALMAS_StringSet AlternativeAction;
+	string ReceiverID;//@key
+	ALMAS_AlertIDType AlertID; //@key
+      };
+      //@top-level false
+
+      struct ALMAS_AvailableAlertReceiverType {
+	string ReceiverID;
+	ALMAS_ReceiverKindType ReceiverKind; };
+      //@top-level false
+
+      typedef sequence<ALMAS_AvailableAlertReceiverType> ALMAS_AvailableAlertReceiverTypeSet;
+
+      struct ALMAS_Alert {
+	ALMAS_AlertIDType AlertID;//@key
+	ALMAS_DateTimeType RaisingTime;
+	ALMAS_StateType CurrentState;
+	string ProducerID;
+	ALMAS_AlertDataType AlertData;
+	ALMAS_AvailableAlertReceiverTypeSet Receivers; };
+      //@top-level true
+
+    };
+  };
+};
+
+#endif
+

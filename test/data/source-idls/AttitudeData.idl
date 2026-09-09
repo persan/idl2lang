@@ -1,0 +1,51 @@
+//=============================================================================
+// Copyright (C)  2007 Saab SWEDEN
+//=============================================================================
+//
+// Description : Collection of attitudereference data for a platform (ship).
+//
+// External dependencies:
+//        com::saabgroup::enterprisebus::generalservices::time v4.0.0
+//
+//
+//===========================================================================
+
+#include "timeType.idl"
+#include "com_saabgroup_enterprisebus.idl"
+
+module com { module saabgroup { module enterprisebus {
+	module attitudereference {
+		// -------------------------------------------------
+		// The version of this IDL file
+		//
+		const string IDL_VERSION = "1.1.0";
+		const string DEFAULT_TOPIC =
+			"com.saabgroup.enterprisebus.attitudereference.attitudeData";
+
+
+		//------------------------------------
+		struct AngleAttitudeType {
+			com::saabgroup::enterprisebus::generalservices::time::TimeType time;
+			com::saabgroup::enterprisebus::RADIAN rawValue;
+			com::saabgroup::enterprisebus::RADIAN filteredValue;
+			com::saabgroup::enterprisebus::RADIAN_PER_SECOND rate;
+			com::saabgroup::enterprisebus::RADIAN_PER_SECOND_SQUARE acceleration;
+		}; //@top-level false
+
+		struct DistanceAttitudeType {
+			com::saabgroup::enterprisebus::generalservices::time::TimeType time;
+			com::saabgroup::enterprisebus::METER rawValue;
+			com::saabgroup::enterprisebus::METER filteredValue;
+			com::saabgroup::enterprisebus::METER_PER_SECOND rate;
+			com::saabgroup::enterprisebus::METER_PER_SECOND_SQUARE acceleration;
+		}; //@top-level false
+
+		struct AttitudeData {
+			AngleAttitudeType heading;
+			AngleAttitudeType roll;
+			AngleAttitudeType pitch;
+			DistanceAttitudeType heave;
+		}; //@top-level true
+
+	};
+}; }; };

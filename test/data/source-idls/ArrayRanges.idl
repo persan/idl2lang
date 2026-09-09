@@ -1,0 +1,15 @@
+module hello {
+  const long SIZE = 10;
+
+  struct World_T {
+    long data;
+  };
+
+  struct HelloWorld {
+    string<128> msg;
+    World_T worlds_1[SIZE];
+    World_T worlds_2[24];
+    boolean profile_1[24];
+    boolean profile_2[SIZE];
+  };
+};

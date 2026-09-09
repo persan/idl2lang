@@ -1,0 +1,22 @@
+// Dummy
+#include "timeType.idl"
+module com {
+   module rti {
+      module enterprisebus {
+	typedef double RADIAN;
+	typedef double RADIAN_PER_SECOND;
+	typedef double RADIAN_PER_SECOND_SQUARE;
+	typedef double METER;
+	typedef double METER_PER_SECOND;
+	typedef double METER_PER_SECOND_SQUARE;
+	typedef boolean VALID;
+         module generalservices {
+            module time {
+              struct TimeType{
+                  double time;
+              }; //@top-level
+            };
+         };
+      };
+   };
+};

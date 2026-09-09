@@ -1,0 +1,163 @@
+//===========================================================================
+// Copyright (C)  2009 Saab AB, Sweden
+//===========================================================================
+//
+// Name        : engagement.idl
+//
+// Author      : Magnus Rundlof / STMARU
+//
+// Description : Data definitions for engagement.
+//
+// History:
+//    2009-04-17 / STMARU / Created version 1.0.
+//
+//===========================================================================
+
+#include "hcm_common.idl"
+#include "enterprisebus_org_omg_time.idl"
+module hcm {
+module engagement {
+
+
+
+	// IDD section 3.1.2.2.1.1.1
+	enum EngagementMode {
+		STAND_ALONE,
+		MANUAL,
+		SEMI_AUTO,
+		AUTO_ASSIGN,
+		AUTO_ENGAGE,
+        EMERGENCY
+	};
+
+	const long ZONE_DEFINITION_MAXSIZE = 20;
+	const long ORDER_LIST_LENGTH = 50;
+
+	enum PositionKind {
+		CONSTANT_rw,
+		REFERENCE_rw
+	};
+
+	struct PositionConstant {
+		double x;
+		double y;
+	};
+
+	union Position switch (PositionKind) {
+		case CONSTANT_rw: PositionConstant value;
+		case REFERENCE_rw: long trackId;
+	};
+
+        struct Circle_t {
+		Position p;
+		double radius;
+	};
+
+	struct Square_t {
+		Position p;
+		double width;
+		double height;
+	};
+
+	enum ShapeKind {
+		CIRCLE,
+		SQUARE
+	};
+
+	union Shape_t switch (ShapeKind) {
+		case CIRCLE: Circle_t circle;
+		case SQUARE: Square_t square;
+	};
+
+	enum LogicOperator {
+		AND_rw,
+		OR_rw
+	};
+
+	struct LogicExpression {
+// 		LogicOperator operator;
+		long zoneDefinitionA;
+		long zoneDefinitionB;
+	};
+
+	enum ZoneDefinitionKind {
+		SHAPE,
+		LOGIC
+	};
+
+	union ZoneDefinition switch (ZoneDefinitionKind) {
+		case SHAPE: Shape_t s;
+		case LOGIC: LogicExpression e;
+	};
+
+	//enum ZoneAction {
+	//	CREATE,
+	//	UPDATE,
+	//	DELETE
+	//};
+
+
+	// IDD section 3.1.2.2.1.1
+	// Referred to as EngagementMode Management Topic. It's not a topic, it's a data type.
+	// Why not call it EngagementZone (which it is) and use zoneId as key and skip the action. DDS handles create, delete, update of zone instances.
+	struct EngagementZone {
+		hcm::common::Header header;
+		long zoneId; //@key
+		EngagementMode mode;
+		long priority;
+		ZoneDefinition zd[ZONE_DEFINITION_MAXSIZE];
+		// ZoneAction action;
+	    // ZoneParameters zoneParameters; TBD
+	};
+
+	// IDD section 3.1.2.2.1.4
+	// Referred to as External Engagement Information Topic. It's not a topic, it's a data type.
+	// Shortened the name to ExternalEngagementInfo.
+	// Is this the same as unplanned engagement? Yes.
+	struct ExternalEngagementInfo {
+		hcm::common::Header header;
+		long platformId;
+		long trackNo;
+		// Resource ID? Formal definition?
+		org::omg::time::UtcT firingTime;
+	};
+
+	// Extracted from IDD Table A-6 Field 2
+	// Formal definition?
+	// Is EngagementOrderOrigin really a good name?
+	enum EngagementOrderOrigin {
+		LINK,
+		OPERATOR
+	};
+
+	// Extracted from IDD Table A-6 Field 5
+	// Formal definition?
+	enum EngagementOrderKind {
+		ASSIGN,
+		DESIGNATE,
+		FIRE,
+		CHANGE_HEADING
+	};
+
+	// IDD Table A-6
+	struct EngagementOrder {
+		hcm::common::Header header;
+		EngagementOrderOrigin origin;
+		long trackNo;
+		// Resource ID? Formal definition?
+		EngagementOrderKind engagementOrderKind;
+		org::omg::time::UtcT orderTime; // Changed name from "Action time".
+		// Action Parameter Value. Type?
+	}; //@top-level false
+
+
+	// IDD Table A-8
+	struct EngagementPlan {
+		hcm::common::Header header;
+		org::omg::time::UtcT planTime;
+		EngagementOrder orders[ORDER_LIST_LENGTH]; // Array or sequence? Fixed size?
+	}; //
+
+}; // module engagement
+}; // module hcm
+

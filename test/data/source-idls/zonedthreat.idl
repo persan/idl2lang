@@ -1,0 +1,27 @@
+#include "hcm_engagement.idl"
+module com {
+module rti {
+module tests {
+module awwc {
+module zonedthreat {
+
+	const long THREAT_LIST_LENGTH = 50;
+
+	struct ZonedThreat {
+		long trackId;
+		hcm::engagement::EngagementMode mode;
+		long priority;
+	}; //@top-level false
+
+	struct ZonedThreatList {
+		long numberOfThreats;
+		ZonedThreat zonedThreats[THREAT_LIST_LENGTH];
+	};
+
+
+
+}; // zonedthreat
+}; // awwc
+}; // enterprisebus
+}; // rti
+}; // com

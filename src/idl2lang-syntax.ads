@@ -204,6 +204,13 @@ package IDL2Lang.Syntax is
 
       Member_Type : Type_Spec_Ref := null;  --  rule (47): <type_spec>
       Declarators : Declarator_Vectors.Vector;   --  rule (47): <declarators>
+      Is_Pointer : Boolean := False;
+      --  True when the member's declarator is a pointer declarator
+      --  ("<type> "*" <declarator>", e.g. "long * member;" or the
+      --  forward-value-type reference "fwd_struct* fwd_value;").  The
+      --  pointer belongs to the declarator, but every corpus use
+      --  declares one pointer per member, so keeping one flag here is
+      --  enough for the back-ends.
       Line : Positive := 1;
       Col  : Positive := 1;
    end record;
@@ -251,7 +258,9 @@ package IDL2Lang.Syntax is
       D_Union_Forward,             --  rule (56)
       D_Enum,                      --  rule (57)
       D_Native,                    --  rule (61)
-      D_Annotation);               --  rule (219)
+      D_Annotation,                --  rule (219)
+      D_Value_Type,                --  rule (79): valuetype
+      D_Interface);                --  rule (86): interface (ops skipped)
 
    type Definition_T;
    type Definition_Ref is access Definition_T;
@@ -330,6 +339,14 @@ package IDL2Lang.Syntax is
       Enumerators : Enumerator_Vectors.Vector;
       --  D_Annotation (rule 219): the annotation body (rule 221).
       Annotation_Body : Annotation_Member_Vectors.Vector;
+      --  D_Value_Type (rule 79): the <value_member>+ of the state
+      --  block, plus the optional base valuetype of rule (80).
+      Value_Members : Member_Vectors.Vector;
+      Base_Type : Scoped_Name_T;
+      Has_Base_Type : Boolean := False;
+      --  D_Interface (rule 86): operations are parsed and discarded;
+      --  only the name is kept (the back-ends do not generate for
+      --  interfaces).
    end record;
 
    ---------------------------------------------------------------------------

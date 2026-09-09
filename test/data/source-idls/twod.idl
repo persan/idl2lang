@@ -1,0 +1,10 @@
+#include "base.idl"
+module vtypes_test {
+  module twod {
+    valuetype twod_track_t : vtypes_test::base::basetrack_t {
+      public double V1;
+      public long   V2;
+    }; //@top-level true
+  };
+};
+

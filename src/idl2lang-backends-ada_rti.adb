@@ -123,6 +123,63 @@ package body IDL2Lang.Backends.Ada_RTI is
    end Img_Positive;
 
    --  Header comment block: identical in every generated file.
+   function Dashify (S : String) return String;
+   --  Dotted Ada package path -> dash file prefix ("a.b.c" -> "a-b-c").
+
+   function Dashify (S : String) return String is
+      R : String := S;
+   begin
+      for I in R'Range loop
+         if R (I) = '.' then
+            R (I) := '-';
+         end if;
+      end loop;
+      return R;
+   end Dashify;
+
+   function Underscorify (S : String) return String is
+      R : String := S;
+   begin
+      for I in R'Range loop
+         if R (I) = '.' then
+            R (I) := '_';
+         end if;
+      end loop;
+      return R;
+   end Underscorify;
+
+   function Dotted_Image (Name : S.Scoped_Name_T) return String;
+   --  Scoped name with Ada dots between parts ("vtypes_test.base.p").
+
+   function Dotted_Image (Name : S.Scoped_Name_T) return String is
+      Result : SU.Unbounded_String;
+   begin
+      for I in Name.Parts.First_Index .. Name.Parts.Last_Index loop
+         if I > Name.Parts.First_Index then
+            SU.Append (Result, '.');
+         end if;
+         SU.Append (Result, SU.To_String (Name.Parts (I)));
+      end loop;
+      return SU.To_String (Result);
+   end Dotted_Image;
+
+   function Colons (S : String) return String is
+      --  Each dot becomes TWO colons (Ada scope -> DDS scope).
+      R2 : String (1 .. 2 * S'Length) := (others => ' ');
+      N : Natural := 0;
+   begin
+      for I in S'Range loop
+         if S (I) = '.' then
+            N := N + 2;
+            R2 (N - 1 .. N) := "::";
+         else
+            N := N + 1;
+            R2 (N) := S (I);
+         end if;
+      end loop;
+      return R2 (1 .. N);
+   end Colons;
+
    procedure Emit_Header
      (Self : in out Ada_RTI_Backend; Idl_Path : String)
    is
@@ -210,7 +267,7 @@ package body IDL2Lang.Backends.Ada_RTI is
       Self.Put_Line ("   function " & Enum_Name & "_Get_TypeCode return "
                        & "Standard.DDS.TypeCode_Access;");
       Self.Put_Line ("   pragma Import (C, " & Enum_Name
-                       & "_Get_TypeCode, """ & Module_Name & "_"
+                       & "_Get_TypeCode, """ & Underscorify (Module_Name) & "_"
                        & Enum_Name & "_get_typecode"");");
       Self.New_Line;
       Self.Put_Line ("   procedure Initialize (This : in out "
@@ -244,12 +301,19 @@ package body IDL2Lang.Backends.Ada_RTI is
       --  Quirk: 2-space indent for the TypeName line (not 3).
       Self.Put_Line
         ("  " & Type_Name & "_TypeName : aliased Standard.DDS.String :="
-           & " Standard.DDS.To_DDS_String  (""" & Module_Name & "::"
+           & " Standard.DDS.To_DDS_String  (""" & Colons (Module_Name) & "::"
            & Type_Name & """);");
       Self.Put_Line ("   type " & Type_Name & " is record");
-      for I in Def.Members.First_Index .. Def.Members.Last_Index loop
+      declare
+         --  A valuetype's state members live in Value_Members; a
+         --  struct's in Members (oracle base.idl: basetrack_t).
+         Mems : constant S.Member_Vectors.Vector :=
+           (if Def.Kind = D_Value_Type
+              then Def.Value_Members else Def.Members);
+      begin
+      for I in Mems.First_Index .. Mems.Last_Index loop
          declare
-            M : constant S.Member_T := Def.Members (I);
+            M : constant S.Member_T := Mems (I);
             Dcl : constant S.Declarator_T :=
               M.Declarators (M.Declarators.First_Index);
             M_Name : constant String := SU.To_String (Dcl.Name);
@@ -285,12 +349,25 @@ package body IDL2Lang.Backends.Ada_RTI is
                  ("    " & M_Name & " : aliased  "
                     & DDS_Seq (M.Member_Type.Element_Type.Kind) & ";");
             elsif M.Member_Type.Kind = T_Scoped_Name then
-               --  Scoped-name members use the fully qualified name
-               --  (Module.Type) and the same four trailing spaces as
-               --  primitives.
-               Self.Put_Line
-                 ("    " & M_Name & " : aliased " & Module_Name & "."
-                    & S.Image (M.Member_Type.Type_Name) & ";    ");
+               --  Scoped-name members use the fully qualified name.
+               --  A multi-part name carries its own Ada scope (dots:
+               --  vtypes_test.base.position_t, oracle base.idl); the
+               --  Module.Type form only applies when the name has no
+               --  scope of its own (Shapes.idl: fill).
+               declare
+                  N_Parts : constant Natural :=
+                    M.Member_Type.Type_Name.Parts.Last_Index;
+                  Ref : constant String :=
+                    (if N_Parts > 1
+                       then Dotted_Image (M.Member_Type.Type_Name)
+                     elsif M.Member_Type.Type_Name.Absolute
+                       then S.Image (M.Member_Type.Type_Name)
+                     else Module_Name & "."
+                            & S.Image (M.Member_Type.Type_Name));
+               begin
+                  Self.Put_Line
+                    ("    " & M_Name & " : aliased " & Ref & ";    ");
+               end;
             elsif M.Member_Type.Kind = T_String
               or else M.Member_Type.Kind = T_Wide_String
             then
@@ -314,9 +391,10 @@ package body IDL2Lang.Backends.Ada_RTI is
                  ("    " & M_Name & " : aliased "
                     & DDS_Type (M.Member_Type.Kind) & ";    ");
             end if;
-         end;
-      end loop;
-      Self.Put_Line ("   end record;");
+                     end;
+                  end loop;
+                  end;  --  the Mems declare block
+                  Self.Put_Line ("   end record;");
       Self.Put_Line (" ");
       Self.Put_Line ("   pragma Convention (C, " & Type_Name & ");");
       Self.Put_Line ("   type " & Type_Name & "_Access is access all "
@@ -331,7 +409,7 @@ package body IDL2Lang.Backends.Ada_RTI is
       Self.Put_Line ("   function " & Type_Name & "_Get_TypeCode return "
                        & "Standard.DDS.TypeCode_Access;");
       Self.Put_Line ("   pragma Import (C, " & Type_Name
-                       & "_Get_TypeCode, """ & Module_Name & "_"
+                       & "_Get_TypeCode, """ & Underscorify (Module_Name) & "_"
                        & Type_Name & "_get_typecode"");");
       Self.New_Line;
       Self.Put_Line ("   procedure Initialize (This : in out " & Type_Name
@@ -366,7 +444,7 @@ package body IDL2Lang.Backends.Ada_RTI is
       Self.Put_Line ("      function Internal");
       Self.Put_Line ("        (This : not null access " & Type_Name & ")");
       Self.Put_Line ("         return Standard.RTI.Bool;");
-      Self.Put_Line ("      pragma Import (C, Internal, """ & Module_Name
+      Self.Put_Line ("      pragma Import (C, Internal, """ & Underscorify (Module_Name)
                        & "_" & Type_Name & "_initialize"");");
       Self.Put_Line ("   begin");
       Self.Put_Line ("      if not Internal (This'Unrestricted_Access) then");
@@ -386,7 +464,7 @@ package body IDL2Lang.Backends.Ada_RTI is
       Self.Put_Line ("      procedure Internal");
       Self.Put_Line ("        (This : access " & Type_Name & ";");
       Self.Put_Line ("         deletePointers : Standard.RTI.Bool);");
-      Self.Put_Line ("      pragma Import (C, Internal, """ & Module_Name
+      Self.Put_Line ("      pragma Import (C, Internal, """ & Underscorify (Module_Name)
                        & "_" & Type_Name & "_finalize_ex"");");
       Self.Put_Line ("   begin");
       Self.Put_Line ("      Internal (This'Unrestricted_Access, "
@@ -406,7 +484,7 @@ package body IDL2Lang.Backends.Ada_RTI is
       Self.Put_Line ("        (Dst : not null access " & Type_Name & ";");
       Self.Put_Line ("         Src : not null access " & Type_Name & ")");
       Self.Put_Line ("         return Standard.RTI.Bool;");
-      Self.Put_Line ("      pragma Import (C, Internal, """ & Module_Name
+      Self.Put_Line ("      pragma Import (C, Internal, """ & Underscorify (Module_Name)
                        & "_" & Type_Name & "_copy"");");
       Self.Put_Line ("   begin");
       Self.Put_Line ("      if not Internal (Dst'Unrestricted_Access, "
@@ -428,7 +506,7 @@ package body IDL2Lang.Backends.Ada_RTI is
       Idl_Path : String)
    is
       File_Name : constant String :=
-        To_Lower (Module_Name & "-" & Type_Name & "_datareader") & ".ads";
+        To_Lower (Dashify (Module_Name) & "-" & Type_Name & "_datareader") & ".ads";
    begin
       Self.Select_Output_File (File_Name, F_Ada_Spec);
       Self.Emit_Header (Idl_Path);
@@ -453,7 +531,7 @@ package body IDL2Lang.Backends.Ada_RTI is
       Idl_Path : String)
    is
       File_Name : constant String :=
-        To_Lower (Module_Name & "-" & Type_Name & "_datawriter") & ".ads";
+        To_Lower (Dashify (Module_Name) & "-" & Type_Name & "_datawriter") & ".ads";
    begin
       Self.Select_Output_File (File_Name, F_Ada_Spec);
       Self.Emit_Header (Idl_Path);
@@ -492,7 +570,7 @@ package body IDL2Lang.Backends.Ada_RTI is
     & "with DDS.Treats_Generic;" & ASCII.LF
     & "with DDS.MetpTypeSupport_None;" & ASCII.LF
     & "with System;" & ASCII.LF
-    & "package @MODL@.@TYPE@_TypeSupport is" & ASCII.LF
+    & "package @AMODL@.@TYPE@_TypeSupport is" & ASCII.LF
     & ASCII.LF
     & "   type Ref is new Standard.DDS.TypeSupport.Ref with null record;"
       & ASCII.LF
@@ -581,7 +659,7 @@ package body IDL2Lang.Backends.Ada_RTI is
     & "                                  MetpTypeSupport  => "
       & "Standard.DDS.MetpTypeSupport_None.Ref);" & ASCII.LF
     & ASCII.LF
-    & "end @MODL@.@TYPE@_TypeSupport;" & ASCII.LF;
+    & "end @AMODL@.@TYPE@_TypeSupport;" & ASCII.LF;
 
    --  The typesupport body template (from the Point oracle).  Case
    --  matters: "Shapes_PointTypeSupport_..." in pragma Imports, etc.
@@ -608,10 +686,10 @@ package body IDL2Lang.Backends.Ada_RTI is
     & "with RTIDDS.Low_Level.ndds_pres_pres_common_h;" & ASCII.LF
     & "with RTIDDS.Low_Level.ndds_pres_pres_typePlugin_h;" & ASCII.LF
     & ASCII.LF
-    & "with @MODL@.@TYPE@_DataReader;" & ASCII.LF
-    & "with @MODL@.@TYPE@_DataWriter;" & ASCII.LF
+    & "with @AMODL@.@TYPE@_DataReader;" & ASCII.LF
+    & "with @AMODL@.@TYPE@_DataWriter;" & ASCII.LF
     & ASCII.LF
-    & "package body @MODL@.@TYPE@_TypeSupport is" & ASCII.LF
+    & "package body @AMODL@.@TYPE@_TypeSupport is" & ASCII.LF
     & ASCII.LF
     & "   use RTIDDS.Low_Level.ndds_dds_c_dds_c_domain_impl_h;" & ASCII.LF
     & "   use RTIDDS.Low_Level.ndds_dds_c_dds_c_domain_h;" & ASCII.LF
@@ -629,7 +707,7 @@ package body IDL2Lang.Backends.Ada_RTI is
     & "     (Self : access Ref) return Standard.DDS.DataReader.Ref_Access"
       & " is" & ASCII.LF
     & "   begin" & ASCII.LF
-    & "      return @MODL@.@TYPE@_DataReader.CreateTypedI;" & ASCII.LF
+    & "      return @AMODL@.@TYPE@_DataReader.CreateTypedI;" & ASCII.LF
     & "   end  Create_TypedDataReaderI;" & ASCII.LF
     & ASCII.LF
     & "   procedure Destroy_TypedDataReaderI" & ASCII.LF
@@ -637,14 +715,14 @@ package body IDL2Lang.Backends.Ada_RTI is
     & "      Reader : in out Standard.DDS.DataReader.Ref_Access) is"
       & ASCII.LF
     & "   begin" & ASCII.LF
-    & "      @MODL@.@TYPE@_DataReader.DestroyTypedI (Reader);" & ASCII.LF
+    & "      @AMODL@.@TYPE@_DataReader.DestroyTypedI (Reader);" & ASCII.LF
     & "   end  Destroy_TypedDataReaderI;" & ASCII.LF
     & ASCII.LF
     & "   function Create_TypedDataWriterI" & ASCII.LF
     & "     (Self : access Ref) return Standard.DDS.DataWriter.Ref_Access"
       & " is" & ASCII.LF
     & "   begin" & ASCII.LF
-    & "      return @MODL@.@TYPE@_DataWriter.CreateTypedI;" & ASCII.LF
+    & "      return @AMODL@.@TYPE@_DataWriter.CreateTypedI;" & ASCII.LF
     & "   end  Create_TypedDataWriterI;" & ASCII.LF
     & ASCII.LF
     & "   procedure Destroy_TypedDataWriterI" & ASCII.LF
@@ -659,7 +737,7 @@ package body IDL2Lang.Backends.Ada_RTI is
     & "     (DeleteInstance : Standard.DDS.Boolean)" & ASCII.LF
     & "     return System.Address;" & ASCII.LF
     & "   pragma Import (C, Get_Native_Typesupport_Ptr, "
-      & """@MODL@_@TYPE@TypeSupport_get_or_delete_instanceI"");" & ASCII.LF
+      & """@CMODL@_@TYPE@TypeSupport_get_or_delete_instanceI"");" & ASCII.LF
     & ASCII.LF
     & "   function R_To_A is new Ada.Unchecked_Conversion" & ASCII.LF
     & "     (Source => Ref_Access," & ASCII.LF
@@ -688,12 +766,12 @@ package body IDL2Lang.Backends.Ada_RTI is
     & "      function InternalCreatePlugin" & ASCII.LF
     & "         return access PRESTypePlugin;" & ASCII.LF
     & "      pragma Import (C, InternalCreatePlugin, "
-      & """@MODL@_@TYPE@Plugin_new"");" & ASCII.LF
+      & """@CMODL@_@TYPE@Plugin_new"");" & ASCII.LF
     & ASCII.LF
     & "      procedure InternalDeletePlugin" & ASCII.LF
     & "        (plugin : access PRESTypePlugin);" & ASCII.LF
     & "      pragma Import (C, InternalDeletePlugin, "
-      & """@MODL@_@TYPE@Plugin_delete"");" & ASCII.LF
+      & """@CMODL@_@TYPE@Plugin_delete"");" & ASCII.LF
     & ASCII.LF
     & "      function InternalRegister" & ASCII.LF
     & "        (Participant : System.Address;" & ASCII.LF
@@ -744,7 +822,7 @@ package body IDL2Lang.Backends.Ada_RTI is
       & ASCII.LF
     & "         return Standard.DDS.ReturnCode_T;" & ASCII.LF
     & "      pragma Import (C, Internal, "
-      & """@MODL@_@TYPE@TypeSupport_unregister_type"");" & ASCII.LF
+      & """@CMODL@_@TYPE@TypeSupport_unregister_type"");" & ASCII.LF
     & ASCII.LF
     & "      Code                  : Standard.Dds.ReturnCode_T;"
       & ASCII.LF
@@ -764,7 +842,7 @@ package body IDL2Lang.Backends.Ada_RTI is
     & "      function Internal return Interfaces.C.Strings.chars_ptr;"
       & ASCII.LF
     & "      pragma Import (C, Internal, "
-      & """@MODL@_@TYPE@TypeSupport_get_type_name"");" & ASCII.LF
+      & """@CMODL@_@TYPE@TypeSupport_get_type_name"");" & ASCII.LF
     & "   begin" & ASCII.LF
     & "      return Name : Standard.DDS.String do" & ASCII.LF
     & "         Name.Data := DDS_String_dup (Internal);" & ASCII.LF
@@ -783,7 +861,7 @@ package body IDL2Lang.Backends.Ada_RTI is
       & ASCII.LF
     & "                         return @TYPE@_Access;" & ASCII.LF
     & "      pragma Import (C, Internal, "
-      & """@MODL@_@TYPE@TypeSupport_create_data_ex"");" & ASCII.LF
+      & """@CMODL@_@TYPE@TypeSupport_create_data_ex"");" & ASCII.LF
     & "      Ret : @TYPE@_Access;" & ASCII.LF
     & "   begin" & ASCII.LF
     & "      Ret := Internal (AllocatePointers);" & ASCII.LF
@@ -810,7 +888,7 @@ package body IDL2Lang.Backends.Ada_RTI is
     & "                         return Standard.DDS.ReturnCode_T;"
       & ASCII.LF
     & "      pragma Import (C, Internal, "
-      & """@MODL@_@TYPE@TypeSupport_delete_data_ex"");" & ASCII.LF
+      & """@CMODL@_@TYPE@TypeSupport_delete_data_ex"");" & ASCII.LF
     & "   begin" & ASCII.LF
     & "      Standard.DDS.Ret_Code_To_Exception" & ASCII.LF
     & "        (Internal (A_Data, DeletePointers)," & ASCII.LF
@@ -828,7 +906,7 @@ package body IDL2Lang.Backends.Ada_RTI is
     & "      procedure Internal (A_Data : not null access constant @TYPE@);"
       & ASCII.LF
     & "      pragma Import (C, Internal, "
-      & """@MODL@_@TYPE@TypeSupport_print_data"");" & ASCII.LF
+      & """@CMODL@_@TYPE@TypeSupport_print_data"");" & ASCII.LF
     & "   begin" & ASCII.LF
     & "      Internal (A_Data);" & ASCII.LF
     & "   end Print_Data;" & ASCII.LF
@@ -848,7 +926,7 @@ package body IDL2Lang.Backends.Ada_RTI is
     & "                         return Standard.DDS.ReturnCode_T;"
       & ASCII.LF
     & "      pragma Import (C, Internal, "
-      & """@MODL@_@TYPE@TypeSupport_copy_data"");" & ASCII.LF
+      & """@CMODL@_@TYPE@TypeSupport_copy_data"");" & ASCII.LF
     & "   begin" & ASCII.LF
     & "      Standard.DDS.Ret_Code_To_Exception" & ASCII.LF
     & "        (Internal (Dest, Source)," & ASCII.LF
@@ -870,7 +948,7 @@ package body IDL2Lang.Backends.Ada_RTI is
     & "                         return Standard.DDS.ReturnCode_T;"
       & ASCII.LF
     & "      pragma Import (C, Internal, "
-      & """@MODL@_@TYPE@TypeSupport_initialize_data_ex"");" & ASCII.LF
+      & """@CMODL@_@TYPE@TypeSupport_initialize_data_ex"");" & ASCII.LF
     & "   begin" & ASCII.LF
     & "      Standard.DDS.Ret_Code_To_Exception" & ASCII.LF
     & "        (Internal (Dest, AllocatePointers)," & ASCII.LF
@@ -892,7 +970,7 @@ package body IDL2Lang.Backends.Ada_RTI is
     & "                         return Standard.DDS.ReturnCode_T;"
       & ASCII.LF
     & "      pragma Import (C, Internal, "
-      & """@MODL@_@TYPE@TypeSupport_finalize_data_ex"");" & ASCII.LF
+      & """@CMODL@_@TYPE@TypeSupport_finalize_data_ex"");" & ASCII.LF
     & "   begin" & ASCII.LF
     & "      Standard.DDS.Ret_Code_To_Exception" & ASCII.LF
     & "        (Internal (Dest, DeletePointers)," & ASCII.LF
@@ -907,7 +985,7 @@ package body IDL2Lang.Backends.Ada_RTI is
     & "      function Internal return Standard.DDS.ReturnCode_T;"
       & ASCII.LF
     & "      pragma Import (C, Internal, "
-      & """@MODL@_@TYPE@TypeSupport_finalize"");" & ASCII.LF
+      & """@CMODL@_@TYPE@TypeSupport_finalize"");" & ASCII.LF
     & "   begin" & ASCII.LF
     & "      Standard.DDS.Ret_Code_To_Exception (Internal, ""Unable to "
       & "finalize"");" & ASCII.LF
@@ -916,7 +994,7 @@ package body IDL2Lang.Backends.Ada_RTI is
     & "begin" & ASCII.LF
     & "   Standard.DDS.DomainParticipant_Impl.Register_Type_Registration "
       & "(Register_Type'Access);" & ASCII.LF
-    & "end @MODL@.@TYPE@_TypeSupport;" & ASCII.LF;
+    & "end @AMODL@.@TYPE@_TypeSupport;" & ASCII.LF;
 
    procedure Emit_Typesupport
      (Self : in out Ada_RTI_Backend;
@@ -925,14 +1003,24 @@ package body IDL2Lang.Backends.Ada_RTI is
       Idl_Path : String)
    is
       Base_Name : constant String :=
-        To_Lower (Module_Name & "-" & Type_Name & "_typesupport");
+        To_Lower (Dashify (Module_Name) & "-" & Type_Name & "_typesupport");
       Spec_Text : constant String :=
         Substitute
-          (Substitute (Typesupport_Spec_Template, "@MODL@", Module_Name),
+          (Substitute
+             (Substitute
+                (Substitute (Typesupport_Spec_Template, "@AMODL@",
+                             Module_Name),
+                 "@MODL@", Underscorify (Module_Name)),
+              "@CMODL@", Underscorify (Module_Name)),
            "@TYPE@", Type_Name);
       Body_Text : constant String :=
         Substitute
-          (Substitute (Typesupport_Body_Template, "@MODL@", Module_Name),
+          (Substitute
+             (Substitute
+                (Substitute (Typesupport_Body_Template, "@AMODL@",
+                             Module_Name),
+                 "@MODL@", Underscorify (Module_Name)),
+              "@CMODL@", Underscorify (Module_Name)),
            "@TYPE@", Type_Name);
    begin
       Self.Select_Output_File (Base_Name & ".ads", F_Ada_Spec);
@@ -952,31 +1040,84 @@ package body IDL2Lang.Backends.Ada_RTI is
    is
       use SU;
 
+      --  Ada package path of the enclosing scope, e.g. "a.b.c" for a
+      --  type at module a/b/c, "" for file-level definitions.  The
+      --  C-level prefix is the same path underscored ("a_b_c") --
+      --  rtiddsgen derives both from the nested module chain.
+      Scope_Ada : SU.Unbounded_String := SU.Null_Unbounded_String;
+      --  The underscored C prefix including the trailing '_' when
+      --  non-empty ("a_b_c_"), "" at file level.
+      Scope_C : SU.Unbounded_String := SU.Null_Unbounded_String;
+      --  True when the current module has already been recursed into
+      --  (its spec/body/typesupport files exist).
+      Type_Count_In_Scope : Natural := 0;
+
       procedure Emit_Module
         (D : S.Definition_Ref; Idl_Path : String);
-      --  One module = module-spec, module-body, and per-struct files.
+      --  One module = module-spec, module-body, and per-type files.
+      --  Nested modules recurse: every level gets its own spec; only
+      --  levels that directly declare types get a body (the oracle:
+      --  a.ads, a-b.ads empty; a-b-c.ads + a-b-c.adb for the leaf).
 
       procedure Emit_Module
         (D : S.Definition_Ref; Idl_Path : String)
       is
          Module_Name : constant String := To_String (D.Name);
+         --  The dotted Ada package name of THIS module (scope + name).
+         Full_Name : constant String :=
+           (if SU.Length (Scope_Ada) = 0
+              then Module_Name
+              else SU.To_String (Scope_Ada) & "." & Module_Name);
+         C_Prefix : constant String :=
+           (if SU.Length (Scope_C) = 0
+              then Module_Name & "_"
+              else SU.To_String (Scope_C) & Module_Name & "_");
+         --  File name prefix: dotted scopes become dashes (library
+         --  level Dashify).
+         File_Prefix : constant String :=
+           (if SU.Length (Scope_Ada) = 0
+              then To_Lower (Module_Name)
+              else To_Lower
+                     (Dashify (SU.To_String (Scope_Ada)) & "-" & Module_Name));
          Module_Spec_Name : constant String :=
-           To_Lower (Module_Name) & ".ads";
+           File_Prefix & ".ads";
          Module_Body_Name : constant String :=
-           To_Lower (Module_Name) & ".adb";
+           File_Prefix & ".adb";
+         --  Does this module directly declare any type (enum, struct,
+         --  typedef, valuetype, union)?  Only those get a body file
+         --  and the with-DDS lines in the spec (oracle module.idl:
+         --  a.ads and a-b.ads are empty, a-b-c has the with-clauses).
+         Declares_Types : Boolean := False;
       begin
+         for J in D.Module_Body.First_Index .. D.Module_Body.Last_Index
+         loop
+            declare
+               K : constant S.Definition_Kind_T :=
+                 D.Module_Body (J).Kind;
+            begin
+               if K = D_Enum or else K = D_Struct
+                 or else K = D_Typedef or else K = D_Value_Type
+                 or else K = D_Union
+               then
+                  Declares_Types := True;
+               end if;
+            end;
+         end loop;
+
          --  Pass 1: the module spec.
          Self.Select_Output_File (Module_Spec_Name, F_Ada_Spec);
          Self.Emit_Header (Idl_Path);
          Self.Put_Line ("pragma Extensions_Allowed (On);");
-         Self.Put_Line ("with DDS;");
-         Self.Put_Line ("with DDS.Sequences_Generic;");
+         if Declares_Types then
+            Self.Put_Line ("with DDS;");
+            Self.Put_Line ("with DDS.Sequences_Generic;");
+         end if;
          Self.New_Line;
          Self.New_Line;
          Self.Put_Line
            ("pragma Style_Checks (off); --  Since this is autogenerated "
               & "code.");
-         Self.Put_Line ("package  " & Module_Name & " is");
+         Self.Put_Line ("package  " & Full_Name & " is");
          Self.New_Line;
          for J in D.Module_Body.First_Index .. D.Module_Body.Last_Index
          loop
@@ -985,20 +1126,45 @@ package body IDL2Lang.Backends.Ada_RTI is
             begin
                case Sub.Kind is
                   when D_Enum =>
-                     Self.Emit_Enum_Block (Module_Name, Sub);
-                  when D_Struct =>
-                     Self.Emit_Struct_Block (Module_Name, Sub);
+                     Self.Emit_Enum_Block (Full_Name, Sub);
+                  when D_Struct | D_Value_Type =>
+                     --  A valuetype's Ada rendering is exactly a
+                     --  struct block of its state members (oracle
+                     --  base.idl: basetrack_t).
+                     Self.Emit_Struct_Block (Full_Name, Sub);
                   when others =>
-                     raise Backend_Error
-                       with "unsupported definition kind "
-                         & S.Definition_Kind_T'Image (Sub.Kind)
-                         & " in module " & Module_Name;
+                     null;
                end case;
             end;
          end loop;
          Self.New_Line;
-         Self.Put_Line ("end " & Module_Name & ";");
+         Self.Put_Line ("end " & Full_Name & ";");
          Self.New_Line;
+
+         --  Recurse into nested modules BEFORE emitting the body: the
+         --  body belongs to this module's own types only.
+         declare
+            Saved_Ada : constant SU.Unbounded_String := Scope_Ada;
+            Saved_C : constant SU.Unbounded_String := Scope_C;
+            Saved_Count : constant Natural := Type_Count_In_Scope;
+         begin
+            Scope_Ada := SU.To_Unbounded_String (Full_Name);
+            Scope_C := SU.To_Unbounded_String (C_Prefix);
+            Type_Count_In_Scope := 0;
+            for J in D.Module_Body.First_Index .. D.Module_Body.Last_Index
+            loop
+               if D.Module_Body (J).Kind = D_Module then
+                  Emit_Module (D.Module_Body (J), Idl_Path);
+               end if;
+            end loop;
+            Scope_Ada := Saved_Ada;
+            Scope_C := Saved_C;
+            Type_Count_In_Scope := Saved_Count;
+         end;
+
+         if not Declares_Types then
+            return;   --  empty intermediate module: no body file
+         end if;
 
          --  Pass 2: the module body.
          Self.Select_Output_File (Module_Body_Name, F_Ada_Body);
@@ -1008,7 +1174,7 @@ package body IDL2Lang.Backends.Ada_RTI is
          Self.New_Line;
          Self.Put_Line ("with RTI;");
          Self.New_Line;
-         Self.Put_Line ("package body " & Module_Name & " is");
+         Self.Put_Line ("package body " & Full_Name & " is");
          Self.New_Line;
          Self.New_Line;
          Self.Put_Line ("   use type Standard.RTI.Bool;");
@@ -1018,34 +1184,35 @@ package body IDL2Lang.Backends.Ada_RTI is
                Sub : constant S.Definition_Ref := D.Module_Body (J);
             begin
                case Sub.Kind is
-                  when D_Enum | D_Struct =>
+                  when D_Enum | D_Struct | D_Value_Type =>
                      Self.Emit_Body_Initialize
-                       (Module_Name, To_String (Sub.Name));
+                       (Full_Name, To_String (Sub.Name));
                      Self.Emit_Body_Finalize
-                       (Module_Name, To_String (Sub.Name));
+                       (Full_Name, To_String (Sub.Name));
                      Self.Emit_Body_Copy
-                       (Module_Name, To_String (Sub.Name));
+                       (Full_Name, To_String (Sub.Name));
                   when others =>
                      null;
                end case;
             end;
          end loop;
-         Self.Put_Line (" end " & Module_Name & ";");
+         Self.Put_Line (" end " & Full_Name & ";");
          Self.New_Line;
 
-         --  Pass 3: per-struct typesupport / datareader / datawriter.
+         --  Pass 3: per-type typesupport / datareader / datawriter.
          for J in D.Module_Body.First_Index .. D.Module_Body.Last_Index
          loop
             declare
                Sub : constant S.Definition_Ref := D.Module_Body (J);
             begin
-               if Sub.Kind = D_Struct then
+               if Sub.Kind = D_Struct or else Sub.Kind = D_Value_Type
+               then
                   Self.Emit_Typesupport
-                    (Module_Name, To_String (Sub.Name), Idl_Path);
+                    (Full_Name, To_String (Sub.Name), Idl_Path);
                   Self.Emit_DataReader_Spec
-                    (Module_Name, To_String (Sub.Name), Idl_Path);
+                    (Full_Name, To_String (Sub.Name), Idl_Path);
                   Self.Emit_DataWriter_Spec
-                    (Module_Name, To_String (Sub.Name), Idl_Path);
+                    (Full_Name, To_String (Sub.Name), Idl_Path);
                end if;
             end;
          end loop;

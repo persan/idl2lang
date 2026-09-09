@@ -1,0 +1,27 @@
+module testData {
+   const string td_topic  = "test/code";
+   const string tda_topic = "test/codea";
+   const string tdb_topic = "test/codeb";
+   const string tdc_topic = "test/codec";
+   const string tdd_topic = "test/coded";
+   struct td {
+      string message;
+      long   index;
+   };
+   struct tda {
+      string message;
+      long   index;
+   };
+   struct tdb {
+      string message;
+      long   index;
+   };
+   struct tdc {
+      string message;
+      long   index;
+   };
+   struct tdd {
+      string message;
+      long   index;
+   };
+};

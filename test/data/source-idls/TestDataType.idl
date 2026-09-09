@@ -1,0 +1,80 @@
+/* $Id: TestDataType.idl,v 1.3 2009/09/11 16:45:27 fernando Exp $
+
+(c) Copyright, Real-Time Innovations, $Date: 2009/09/11 16:45:27 $.
+All rights reserved.
+
+No duplications, whole or partial, manual or electronic, may be made
+without express written permission.  Any such copies, or
+revisions thereof, must display this notice unaltere
+This code contains trade secrets of Real-Time Innovations, Inc.
+
+IMPORTANT!
+This file is hand-modified from an rtiddsgen generated file.
+You should not regenerate it.
+
+modification history
+--------------------
+1.4d,10sep09,fcs Added DDSTestOptimizedMemoryKeyedStringType,
+                 DDSTestOptimizedMemoryUnkeyedStringType and Struct1
+===================================================================== */
+module DDSTEST {
+    struct DDSTestNoKeyType {
+        long longData;
+    };
+
+    struct DDSTestKeyType {
+        long longKey; //@key
+        long longData;
+    }; //@top-level true
+
+    struct DDSTestKeyedStringType {
+        string stringKey; //@key
+        long longData;
+    }; //@top-level true
+
+    struct DDSTestOptimizedMemoryKeyedStringType {
+        string stringKey; //@key
+        long longData;
+    }; //@top-level true
+
+    struct DDSTestOptimizedMemoryUnkeyedStringType {
+        string str;
+        long longData;
+    };
+};
+
+module TestLayout {
+  struct ExampleStruct {
+    long structdata1;
+    long long structdata2;
+  };
+  //@Extensibility FINAL_EXTENSIBILITY
+  //@top-level false
+
+  struct ExampleData {
+    short data1;
+    ExampleStruct data2;
+    short data3;
+    ExampleStruct data4;
+    short data5;
+    long serverId; //@key
+  };
+  //@Extensibility FINAL_EXTENSIBILITY
+  //@top-level true
+};
+
+module Module1 {
+    struct Struct1 {
+        long m1;
+    };
+};
+
+module foo { 
+    struct BaseType { 
+        double base_val; 
+        double another_base_val;
+    }; 
+    struct DerivedType : BaseType { 
+        double derived_val; 
+    }; 
+};

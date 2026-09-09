@@ -1,0 +1,13 @@
+module vtypes_testit {
+  module fwd_mod {
+    struct fwd_struct;
+    struct main_struct{
+      fwd_struct* fwd_value;
+    };
+
+    struct fwd_struct{
+      long value1;
+    };
+  };
+};
+

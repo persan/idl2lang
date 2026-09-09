@@ -1,0 +1,95 @@
+//=============================================================================
+// Copyright (C)  2007 Saab SWEDEN
+//=============================================================================
+//
+// Description : Collection of position and velocity reference data 
+//               for a platform (ship).
+//
+// External dependencies:
+//        com::saabgroup::enterprisebus::generalservices::time v4.0.0
+//
+//===========================================================================
+#include "timeType.idl"
+#include "com_saabgroup_enterprisebus.idl"
+
+
+module com { module saabgroup { module enterprisebus {
+	module positionreference {
+		// -------------------------------------------------
+		// The version of this IDL file
+		//
+		const string IDL_VERSION = "1.1.0";
+		const string DEFAULT_TOPIC = 
+			"com.saabgroup.enterprisebus.positionreference.positionData";
+
+
+		// -------------------------------------------------
+		struct PositionType{
+			com::saabgroup::enterprisebus::RADIAN longitude;     
+			com::saabgroup::enterprisebus::RADIAN latitude;      
+			com::saabgroup::enterprisebus::METER  dilution;
+		}; //@top-level false
+
+		// ------------------------------------------------
+		struct VelocityType{
+			com::saabgroup::enterprisebus::METER_PER_SECOND north; 
+			com::saabgroup::enterprisebus::METER_PER_SECOND east; 
+			com::saabgroup::enterprisebus::METER_PER_SECOND down; 
+			com::saabgroup::enterprisebus::METER_PER_SECOND error;  // in the north/east system
+			com::saabgroup::enterprisebus::METER_PER_SECOND errorDown;
+		}; //@top-level false
+
+
+        // ---------------------------------------------------
+		// The platfrom's position 
+		struct Position{
+			com::saabgroup::enterprisebus::generalservices::time::TimeType time;
+			PositionType position;
+		}; //@top-level false
+
+		// ---------------------------------------------------
+		// The platfrom's depth under surface
+		struct Depth{
+			com::saabgroup::enterprisebus::generalservices::time::TimeType time;
+			com::saabgroup::enterprisebus::METER depth;
+		}; //@top-level false
+
+		// -------------------------------------------------
+		// The platfrom's velocity over ground
+		struct SpeedOverGround{
+			com::saabgroup::enterprisebus::generalservices::time::TimeType time;
+			VelocityType velocity;
+		}; //@top-level false
+
+		// ---------------------------------------------------
+		// The platfrom's velocity through water
+		struct SpeedThroughWater{
+			com::saabgroup::enterprisebus::generalservices::time::TimeType time;
+			com::saabgroup::enterprisebus::METER_PER_SECOND along;
+			com::saabgroup::enterprisebus::METER_PER_SECOND transverse;
+			com::saabgroup::enterprisebus::METER_PER_SECOND down;
+			com::saabgroup::enterprisebus::METER_PER_SECOND errorAlong;
+			com::saabgroup::enterprisebus::METER_PER_SECOND errorTransverse;
+			com::saabgroup::enterprisebus::METER_PER_SECOND errorDown;
+		}; //@top-level false
+
+		// ---------------------------------------------------
+		// The sea current's velocity
+		struct SeaCurrent{
+			com::saabgroup::enterprisebus::generalservices::time::TimeType time;
+			VelocityType seaCurrent;
+		}; //@top-level false
+
+		// ---------------------------------------------------
+		// Position Data top level struct
+		// ---------------------------------------------------
+		struct PositionData {
+			Position          position;
+			Depth             depth;
+			SpeedOverGround   speedOverGround;
+			SpeedThroughWater speedThroughWater;
+			SeaCurrent        seaCurrent;
+		}; //@top-level true
+
+	};
+}; }; };

@@ -1,0 +1,40 @@
+//===========================================================================
+// Copyright (C)  2009 Saab AB, Sweden
+//===========================================================================
+//
+// Name        : common_hcm.idl
+//
+// Author      : Magnus Rundlof / STMARU
+//
+// Description : Common data definitions for the
+//               HALIFAX Class Modernization (HCM).
+//
+// History:
+//    2009-04-29 / STMARU / Created version 1.0.
+//
+//===========================================================================
+#include "enterprisebus_org_omg_time.idl"
+module hcm {
+module common {
+
+	// No formal data type definition.
+	struct InfrastructureData {
+		org::omg::time::UtcT timestamp;
+		// srcComponentName;
+		// securityLabel;
+		// securityLevels;
+		// securityCaveats;
+		// dataSource;
+		// strategicLevels;
+		// communicationDomains;
+		// nation;
+	};
+
+	// Skipped the HCM prefix
+	struct Header {
+	    InfrastructureData infrastructureData;
+		string<128> systemConfig; // Size?
+	};
+
+}; // module common
+}; // module hcm

@@ -1,0 +1,201 @@
+#include "ALMAS_DataModel.idl"
+
+#ifndef __ALMAS_Management_DEF
+#define __ALMAS_Management_DEF
+
+module org
+{
+  module omg
+  {
+    module ALMAS_Management {
+
+      typedef sequence<org::omg::ALMAS_DataModel::ALMAS_Alert> ALMAS_AlertSet;
+
+      struct ALMAS_Response {
+	long long request_id;//@key
+	org::omg::ALMAS_DataModel::ALMAS_CallStatus error_code;
+      };
+      //@top-level true
+      //#pragma keylist ALMAS_Response request_id
+
+      // Need a singleton topic for ALMAS_Manager since it has attributes
+      //struct ALMAS_Manager {
+      //	string SystemID;};
+		//#pragma keylist ALMAS_Manager
+
+      struct ALMAS_RaiseAlertFromTemplate {
+	long long request_id;//@key
+	string ProducerID;
+	org::omg::ALMAS_DataModel::ALMAS_TemplateIDType TemplateID; };
+      //@top-level true
+		//#pragma keylist ALMAS_RaiseAlertFromTemplate request_id
+
+      struct ALMAS_RegisterReceiver {
+	long long request_id;//@key
+	string ReceiverID;
+	string RKType; };
+      //@top-level true
+		//#pragma keylist ALMAS_RegisterReceiver request_id
+
+      struct ALMAS_UnregisterReceiver {
+	long long request_id;//@key
+	string ReceiverID; };
+      //@top-level true
+		//#pragma keylist ALMAS_UnregisterReceiver request_id
+
+      struct ALMAS_RaiseAlertFromOverrides {
+	long request_id;//@key
+	string ProducerID;
+	org::omg::ALMAS_DataModel::ALMAS_TemplateIDType TemplateID;
+	org::omg::ALMAS_DataModel::ALMAS_AlertDataAttributesType Attributes;
+	boolean CategoryValid;
+	boolean PriorityValid;
+	boolean StatusValid;
+	boolean ScopeValid;
+	boolean TomeoutValid;
+	boolean ConfirmationRequiredValid;
+	boolean SecondaryGroupingValid;
+	boolean PersistentValid;
+	boolean ReliablyDistributedValid;
+	boolean TimeoutActionValid;
+	boolean AcknowledgementModelValid;
+	boolean StaticMessagesValid;
+	boolean DynamicMessagesValid; };
+      //@top-level true
+		//#pragma keylist ALMAS_RaiseAlertFromOverrides request_id
+
+      struct ALMAS_RaiseAlertFromData {
+	long long request_id;//@key
+	string ProducerID;
+	boolean Inhibited;
+	boolean RaiseToAll;
+	org::omg::ALMAS_DataModel::ALMAS_AlertDataAttributesType Attributes;
+	org::omg::ALMAS_DataModel::ALMAS_AlertDataExtraAttributesTypeSet ExtraAttributes;
+	org::omg::ALMAS_DataModel::ALMAS_ReceiverKindTypeSet ReceiverKinds; };
+      //@top-level true
+		//#pragma keylist ALMAS_RaiseAlertFromData request_id
+
+      struct ALMAS_CreatedAlert {
+	long long request_id;//@key
+	org::omg::ALMAS_DataModel::ALMAS_AlertIDType AlertID; };
+      //@top-level true
+		//#pragma keylist ALMAS_CreatedAlert request_id
+
+      struct ALMAS_UpdateAlertPriority {
+	long long request_id;//@key
+	string ProducerID;
+	org::omg::ALMAS_DataModel::ALMAS_AlertIDType AlertID;
+	short Priority; };
+      //@top-level true
+		//#pragma keylist ALMAS_UpdateAlertPriority request_id
+
+      struct ALMAS_CancelAlert {
+	long long request_id;//@key
+	string CancelerID;
+	org::omg::ALMAS_DataModel::ALMAS_AlertIDType AlertID;
+	string CancellationReason; };
+      //@top-level true
+		//#pragma keylist ALMAS_CancelAlert request_id
+
+      struct ALMAS_AcknowledgeAlert {
+	long long request_id;//@key
+	org::omg::ALMAS_DataModel::ALMAS_AlertIDType AlertID;
+	string ReceiverID;};
+      //@top-level true
+		//#pragma keylist ALMAS_AcknowledgeAlert request_id
+
+      struct ALMAS_HandleAlert {
+	long long request_id;//@key
+	org::omg::ALMAS_DataModel::ALMAS_AlertIDType AlertID;
+	string ReceiverID;};
+      //@top-level true
+		//#pragma keylist ALMAS_HandleAlert request_id
+
+      struct ALMAS_ConfirmReceipt {
+	long long request_id;//@key
+	org::omg::ALMAS_DataModel::ALMAS_AlertIDType AlertID;
+	string ReceiverID;};
+      //@top-level true
+		//#pragma keylist ALMAS_ConfirmReceipt request_id
+
+      struct ALMAS_SetLanguage {
+	long long request_id;//@key
+	string ReceiverID;
+	string Language;};
+      //@top-level true
+		//#pragma keylist ALMAS_SetLanguage request_id
+
+      struct ALMAS_GetFilledMessageText {
+	long long request_id;//@key
+	org::omg::ALMAS_DataModel::ALMAS_AlertIDType AlertID;
+	string ReceiverID;};
+      //@top-level true
+		//#prgma keylist ALMAS_GetFilledMessageText request_id
+
+      struct ALMAS_FilledMessageText {
+	long long request_id;//@key
+	org::omg::ALMAS_DataModel::ALMAS_StringSet Messages; };
+      //@top-level true
+		//#pragma keylist ALMAS_FilledMessageText request_id
+
+      struct ALMAS_LoadReceiverHierarchy {
+	long long request_id;//@key
+	string Filename ;};
+      //@top-level true
+		//#pragma keylist ALMAS_LoadReceiverHierarchy request_id
+
+      struct ALMAS_LoadTemplateSet {
+	long long request_id;//@key
+	string Filename; };
+      //@top-level true
+      //#pragma keylist ALMAS_LoadTemplateSet request_id
+
+      struct ALMAS_LoadConfiguration {
+	long long request_id;//@key
+	string Filename; };
+      //@top-level true
+		//#pragma keylist ALMAS_LoadConfiguration request_id
+
+      struct ALMAS_UpdateDynamicMessageData {
+	long long request_id;//@key
+	string ProducerID;
+	org::omg::ALMAS_DataModel::ALMAS_AlertIDType AlertID;
+	string DataValue;
+	org::omg::ALMAS_DataModel::ALMAS_DynamicMessageDataType OldData; };
+      //@top-level true
+		//#pragma keylist ALMAS_UpdateDynamicMessageData request_id
+
+      struct ALMAS_SetAlertInhibited {
+	long long request_id;//@key
+	string ProducerID;
+	org::omg::ALMAS_DataModel::ALMAS_TemplateIDType TemplateID;
+	boolean Inhibition; };
+      //@top-level true
+		//#pragma keylist ALMAS_SetAlertInhibited request_id
+
+      struct ALMAS_AttachCategorisationRule {
+	long long request_id;//@key
+	long RuleID;
+	org::omg::ALMAS_DataModel::ALMAS_AlertIDType AlertID; };
+      //@top-level true
+		//#pragma keylist ALMAS_AttachCategorisationRule request_id
+
+      struct ALMAS_DetachCategorisationRule {
+	long long request_id;//@key
+	long RuleID;
+	org::omg::ALMAS_DataModel::ALMAS_AlertIDType AlertID; };
+      //@top-level true
+		//#pragma keylist ALMAS_DetachCategorisationRule request_id
+
+      struct ALMAS_RemoveAlertsWithDynamicMessageData {
+	long long request_id;//@key
+	string CancellerID;
+	string DataType;
+	string DataValue; };
+      //@top-level true
+		//#pragma keylist ALMAS_RemoveAlertsWithDynamicMessageData request_id
+    };
+  };
+};
+
+#endif

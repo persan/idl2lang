@@ -1,0 +1,9 @@
+module a {
+module b {
+module c {
+  struct foo {
+    long data;
+ };
+};
+};
+};

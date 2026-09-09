@@ -1,0 +1,138 @@
+module mtypes {
+  module one{
+    typedef boolean Result_Flag;
+    enum Color {Red, Green, Blue};
+    struct simple_types{
+      short      d_short;
+      long       d_long;
+      long long  d_long_long;
+
+      unsigned short      d_u_short;
+      unsigned long       d_u_long;
+      unsigned long long  d_u_long_long;
+
+      double     d_double;
+
+      char       d_char;
+      wchar      d_wchar;
+      octet      d_octet;
+      string<10> d_string20;
+      boolean    d_bool;
+    };
+    struct Example {
+      long member1, member2;
+      boolean member3[4];
+    };
+    union Example2 switch (long) {
+	case 1: case 3: long Counter;
+	case 2: boolean Flags [4];
+	default: long Unknown;
+      };
+    module Fresco {
+      typedef string Name;
+      const double Pi = 3.1415926535;
+      const short Line_Buffer_Length = 80;
+    };
+
+    // Constructs from RTI Users guide 3.2
+    module test_simple_datatypes {
+	struct PrimitiveStruct_char {
+	  char char_member;
+	};
+      struct PrimitiveStruct_wchar {
+	wchar wchar_member;
+      };
+      struct PrimitiveStruct_octet {
+	octet octet_member;
+      };
+      struct PrimitiveStruct_short {
+	short short_member;
+      };
+      struct PrimitiveStruct_ushort {
+	unsigned short unsigned_short_member;
+      };
+      struct PrimitiveStruct_long {
+	long long_member;
+      };
+      struct PrimitiveStruct_ulong {
+	unsigned long unsigned_long_member;
+      };
+      struct PrimitiveStruct_longlong {
+	long long long_long_member;
+      };
+      struct PrimitiveStruct_ulonglong {
+	unsigned long long unsigned_long_long_member;
+      };
+      struct PrimitiveStruct_float {
+	float float_member;
+      };
+      struct PrimitiveStruct_doulble {
+	double double_member;
+      };
+      struct PrimitiveStruct_ldouble {
+	long double long_double_member;
+      };
+      struct MyStruct_ref_long {
+	long * member;
+      };
+      struct PrimitiveStruct_bool {
+	boolean boolean_member;
+      };
+      const short SIZE = 5;
+
+//      struct BitfieldType {
+//	short myShort_1 : 1;
+//	unsigned short myUnsignedShort_1: 1;
+//	long myLong_1: 1;
+//	unsigned long myUnsignedLong_1 : 1;
+//	char myChar_1 : 1;
+//	wchar myWChar_1 : 1;
+//	octet myOctet_1 : 1;
+//	short : 0;
+//	long myLong_5 : 5;
+//	long myLong_30 : 30;
+//	short myShort_6 : 6;
+//	short myShort_3and4 : 3+4;
+//	short myShort;
+//	short myShort_8 : 8;
+//	long myLong_32: 32;
+//      };
+
+      union PrimitiveUnion switch (long){
+	  case 1:
+	    short short_member;
+	  default:
+	    long long_member;
+	};
+
+      struct OneDArrayStruct {
+	short short_array[2];
+      };
+
+      struct TwoDArrayStruct {
+	short short_array[1];
+      };
+
+
+      struct PrimitiveStructString {
+	string<20> string_member;
+      };
+      struct PrimitiveStructuString {
+	string string_member;
+      };
+
+      valuetype MyValueType {
+	public string member1;
+	public string member2;
+      };
+
+      valuetype MyValueType_extend : test_simple_datatypes::MyValueType {
+	public string member3;
+	public string member4;
+      };
+      struct SequenceStruct {
+          sequence<short> short_sequence;
+      };
+    };
+  };
+};

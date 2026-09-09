@@ -1,0 +1,33 @@
+/* $Id: Constants.idl,v 1.5 2008/02/11 18:15:14 fernando Exp $
+
+ (c) Copyright, Real-Time Innovations, $Date: 2008/02/11 18:15:14 $.
+ All rights reserved.
+ No duplications, whole or partial, manual or electronic, may be made
+ without express written permission.  Any such copies, or
+ revisions thereof, must display this notice unaltered.
+ This code contains trade secrets of Real-Time Innovations, Inc.
+
+modification history
+------------ -------
+10m,11feb08,fcs Added String constant with spaces for bug 12116
+10m,25jul06,fcs Added LONG_CONST_123
+10m,27jun06,fcs Added test for bug 11173
+10h,09dec05,fcs Inserted new line at the end of the file
+==============================================================================*/
+
+//Constants
+const double PI = 3.1415;
+const double PI2 = 2.0*PI;
+
+typedef long MYLONG;
+const MYLONG LONG_CONST_123 = 100 + 23;
+
+const string MY_STRING = " Hello World!";
+
+#ifdef JAVA
+const long long LONG_LONG_CONST = 2147483648;
+const long long LONG_LONG_CONST2 = -2147483649;
+const long LONG_CONST = 2147483647;
+const long LONG_CONST2 = -2147483648;
+#endif
+

@@ -1,0 +1,21 @@
+
+// TimeBase.idl
+
+module org {
+module omg {
+module time {
+
+typedef unsigned long long TimeT;
+typedef TimeT InaccuracyT;
+typedef short TdfT;
+
+struct UtcT {
+      TimeT time;
+      unsigned long inacclo;
+      unsigned short inacchi;
+      TdfT tdf;
+};
+
+}; // module time
+}; // module omg
+}; // module org

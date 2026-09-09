@@ -1,0 +1,52 @@
+//=============================================================================
+// Copyright (C)  2007 SaabSystems, SWEDEN
+//=============================================================================
+//
+// Description : Sensor data for attitude sensors, i.e. gyro.
+//
+// External dependencies:
+//        com::saabgroup::enterprisebus::generalservices::time v4.0.0
+//
+//===========================================================================
+
+#include "timeType.idl"
+#include "com_saabgroup_enterprisebus.idl"
+
+module com{ module saabgroup{ module cms {module pha {
+    module sensor { module attitude{
+        // ---------------------------------------------------
+        // The version of this IDL file
+        //
+        const string IDL_VERSION = "2.1.0";
+        const string DEFAULT_TOPIC = 
+            "com.saabgroup.cms.pha.sensor.attitude.t_attitude_sensors";
+
+        // ----------------------------------------------
+        struct AngleAttitudeType {
+            com::saabgroup::enterprisebus::generalservices::time::TimeType time;
+            com::saabgroup::enterprisebus::RADIAN rawValue;
+            com::saabgroup::enterprisebus::RADIAN filteredValue;
+            com::saabgroup::enterprisebus::RADIAN_PER_SECOND rate;
+            com::saabgroup::enterprisebus::RADIAN_PER_SECOND_SQUARE acceleration;
+        }; //@top-level false
+
+        struct DistanceAttitudeType {
+            com::saabgroup::enterprisebus::generalservices::time::TimeType time;
+            com::saabgroup::enterprisebus::METER rawValue;
+            com::saabgroup::enterprisebus::METER filteredValue;
+            com::saabgroup::enterprisebus::METER_PER_SECOND rate;
+            com::saabgroup::enterprisebus::METER_PER_SECOND_SQUARE acceleration;
+        }; //@top-level false
+
+        enum GyroType {MAIN, SECONDARY, EMERGANCY, SIMULATED, MANUAL};
+
+        struct Attitude {
+            GyroType source; //@key
+            AngleAttitudeType heading;
+            AngleAttitudeType roll;
+            AngleAttitudeType pitch;
+            DistanceAttitudeType heave;
+        }; //@top-level true
+
+    }; };
+}; }; }; };

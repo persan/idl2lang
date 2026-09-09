@@ -1,0 +1,22 @@
+module highlevel1 {
+    module rti {
+	typedef unsigned long long myUlonglongType;
+	typedef short myShortType;
+	struct MyStruct1 {
+	    unsigned long mylong;
+	    unsigned short myshort;
+	};
+    };
+};
+
+
+module highlevel2 {
+    module ndds {
+	typedef unsigned long long myUlonglongType;
+	typedef short myShortType;
+	struct MyStruct2 {
+	    unsigned long mylong;
+	    unsigned short myshort;
+	};
+    };
+};

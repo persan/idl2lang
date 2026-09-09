@@ -1,0 +1,111 @@
+//=============================================================================
+// Copyright (C)  2007 SaabSystems, SWEDEN
+//=============================================================================
+//
+// Description : Collection of alert parameters for a raised alert.
+//
+//	External dependencies:
+//	com.saabgroup.cms.gs.time
+//===========================================================================
+
+#include "timeType.idl"
+module com{
+	module saabgroup{
+		module cms{
+			module gs{
+				module alha{
+					// --------------------------------------------
+					// The version of this IDL file
+					//
+					const string IDL_VERSION = "1.1.0";
+					// -------------------------------------------------
+					// Constants
+					//
+					const string DEFAULT_TOPIC = "AlertData";
+					const long PARAMETER_AREA_SIZE = 100;
+
+					// -------------------------------------------------
+					// Type definitions
+					//
+
+
+
+					typedef octet ProducerIdType[4];
+					typedef octet AlertTypeIdType[8];
+
+					enum	SuppressionType {By_Alha, By_User};
+					enum	AddressingType {To_All, To_OpPos, To_OpRole};
+
+
+					// To be investigated further....
+					enum	ResponseType {	By_Operator,
+								Timeout,
+								Category_Mismatch,
+								Replaced,
+								Suppressed,
+								Queue_Full,
+								Lost
+					};
+
+
+					struct AlertData{
+						unsigned short	System_Id;
+						ProducerIdType	Producer_Id;
+						AlertTypeIdType	AlertType_Id;
+						unsigned short	Instance_Id;	// 0 if not used
+						AddressingType	Addressing_Option;
+						unsigned short	Addressee;	// Not used for 'To_All', OpPos for 'To_OpPos' and OpRole for 'To_OpRole'
+						// Parameters used in Generate message types
+						// Format of the parameter area:
+						// Byte 0:	Number of parameters in the area (0-49)
+						// Byte 1-100:	Parameters separated by a null byte ($00).
+						// Example of a layout when there are two parameters "1" and "2" (in hex format):
+						// 02 31 00 32 00 00 00 .. 00
+						// ^   ^  ^  ^- Second parameter ("2" == $32)
+						// |   |  |-  Parameter separator
+						// |   |- First parameter ("1" == $31)
+						// |- Two parameters
+						//
+						octet			Parameters[PARAMETER_AREA_SIZE];
+						com::saabgroup::enterprisebus::generalservices::time::TimeType		Occurance_Time;
+						long			lifetime;		// 0 If not used.
+						SuppressionType	Suppression_Handled;
+					}; //@top-level false
+
+					// ===================================================
+					// The MAIN DDS ALERT DATA structures
+					// ===================================================
+					struct StatusAlertData{
+						long	AlertId_1;	//@key
+						long	AlertId_2;	//@key
+						long	AlertId_3;	//@key
+													//(Based on System_Id, Producer_Id, AlertType_Id and Instance_Id)
+						AlertData	Alert;
+					}; //@top-level true
+
+					struct NotificationAlertData{
+						long	AlertId_1;	//@key
+						long	AlertId_2;	//@key
+													//(Based on System_Id and Producer_Id)
+						AlertData	Alert;
+					}; //@top-level true
+
+
+
+					// ===================================================
+					// The MAIN DDS ALERT RESPONSE structure
+					// ===================================================
+					struct AlertResponseData{
+						unsigned short	System_Id;
+						ProducerIdType	Producer_Id;
+						AlertTypeIdType	AlertType_Id;
+						unsigned short	Instance_Id;	// 0 if not used
+						ResponseType	Response;
+						unsigned long	Operator_Variant;
+						unsigned long	Operator_Position;
+					}; //@top-level true
+				};
+			};
+		};
+	};
+};

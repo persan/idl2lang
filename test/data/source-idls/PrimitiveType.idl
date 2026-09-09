@@ -1,0 +1,35 @@
+/* $Id: PrimitiveType.idl,v 1.3 2008/05/06 23:42:52 rwarren Exp $
+
+ (c) Copyright, Real-Time Innovations, $Date: 2008/05/06 23:42:52 $.
+ All rights reserved.
+ No duplications, whole or partial, manual or electronic, may be made
+ without express written permission.  Any such copies, or
+ revisions thereof, must display this notice unaltered.
+ This code contains trade secrets of Real-Time Innovations, Inc.
+
+modification history
+------------ -------
+10v,29apr08,rbw Restored long doubles
+10v,22mar08,rbw Skip long double when generating C++/CLI
+=========================================================================== */
+
+
+struct PrimitiveType {
+    char myChar;
+    wchar myWchar;
+    octet myOctet;
+    short myShort;
+    unsigned short myUnsignedShort;
+    long myLong;
+    unsigned long myUnsignedLong;
+    long long myLongLong;
+    unsigned long long myUnsignedLongLong;
+    float myFloat;
+    double myDouble;
+    long double myLongDouble;
+    boolean myBoolean;
+};
+
+
+/* ======================================================================== */
+/* $Id: PrimitiveType.idl,v 1.3 2008/05/06 23:42:52 rwarren Exp $ */

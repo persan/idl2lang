@@ -15,6 +15,8 @@ with Ada.Exceptions;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
+with IDL2Lang.Backends;
+with IDL2Lang.Backends.Factory;
 with IDL2Lang.Lexers;
 with IDL2Lang.Parsers;
 with IDL2Lang.Syntax;
@@ -29,6 +31,7 @@ procedure IDL2Lang.Tool is
 
    Mode_Tokens : constant String := "-tokens";
    Mode_AST : constant String := "-ast";
+   Mode_Gen : constant String := "-gen";
 
    function Img (N : Natural) return String is
       S : constant String := Natural'Image (N);
@@ -101,8 +104,42 @@ begin
             Put_Line (Ada.Exceptions.Exception_Message (Err));
             Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
       end;
+   elsif Ada.Command_Line.Argument_Count = 4
+     and then Ada.Command_Line.Argument (1) = Mode_Gen
+   then
+      --  Codegen mode: -gen <language> <vendor> <file.idl>; output
+      --  goes to the current directory (the factory commits files).
+      declare
+         Lang : constant String := Ada.Command_Line.Argument (2);
+         Vendor : constant String := Ada.Command_Line.Argument (3);
+         File : constant String := Ada.Command_Line.Argument (4);
+      begin
+         declare
+            Tree : constant IDL2Lang.Parsers.Definition_Vectors.Vector :=
+              IDL2Lang.Parsers.Parse (Read_File (File));
+            Be : constant IDL2Lang.Backends.Backend_Ref :=
+              IDL2Lang.Backends.Factory.Lookup
+                (Lang, Vendor, Tree, File, ".");
+         begin
+            IDL2Lang.Backends.Write_All (Be.all, ".");
+            for I in 1 .. IDL2Lang.Backends.File_Count (Be.all) loop
+               Put_Line (IDL2Lang.Backends.File_Name (Be.all, I));
+            end loop;
+            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Success);
+         end;
+      exception
+         when Err : IDL2Lang.Lexical_Error =>
+            Put_Line (Ada.Exceptions.Exception_Message (Err));
+            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         when Err : IDL2Lang.Parsers.Syntax_Error =>
+            Put_Line (Ada.Exceptions.Exception_Message (Err));
+            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         when Err : IDL2Lang.Backends.Backend_Error =>
+            Put_Line (Ada.Exceptions.Exception_Message (Err));
+            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+      end;
    else
-      Put_Line ("usage: idl2lang_tool [-ast] <file.idl>");
+      Put_Line ("usage: idl2lang_tool [-ast] [-gen <language> <vendor>] <file.idl>");
       Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    end if;
 end IDL2Lang.Tool;
