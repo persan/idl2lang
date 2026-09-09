@@ -143,8 +143,10 @@ oracles in `test/data/oracle_ada/` (Hello) and `test/data/oracle_ada2/`
 (Shapes) byte by byte.
 
 Remaining for full rtiddsgen parity: the C plugin layer (`Hello.c/.h`,
-`HelloPlugin.c/.h`, `HelloSupport.c/.h`), nested modules, and
-multi-dimension arrays.
+`HelloPlugin.c/.h`, `HelloSupport.c/.h` — deferred to a follow-up
+milestone; its include-guard hash is rtiddsgen-internal, so the C
+emitter will carry a documented one-line deviation or captured-guard
+data — nested modules, and multi-dimension arrays.
 
 ## License
 
