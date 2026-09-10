@@ -140,11 +140,34 @@ package body IDL2Lang.Backends is
                  (Character'Pos (Text (K)));
                J := Ada.Streams.Stream_Element_Offset'Succ (J);
             end loop;
-            Ada.Streams.Stream_IO.Create
-              (F, Ada.Streams.Stream_IO.Out_File,
-               Output_Dir & '/'
-                 & Ada.Strings.Unbounded.To_String
-                     (Self.Emitted (I).Name));
+            --  Java back-ends emit into package directories
+            --  ("Module1/HelloStruct1.java"): create intermediate
+            --  directories on demand.
+            declare
+               Full_Path : constant String :=
+                 Output_Dir & '/'
+                   & Ada.Strings.Unbounded.To_String
+                       (Self.Emitted (I).Name);
+               Last_Slash : Natural := 0;
+            begin
+               for K in Full_Path'Range loop
+                  if Full_Path (K) = '/' or else Full_Path (K) = '\' then
+                     Last_Slash := K;
+                  end if;
+               end loop;
+               if Last_Slash > Full_Path'First then
+                  declare
+                     Parent : constant String :=
+                       Full_Path (Full_Path'First .. Last_Slash - 1);
+                  begin
+                     if not Ada.Directories.Exists (Parent) then
+                        Ada.Directories.Create_Path (Parent);
+                     end if;
+                  end;
+               end if;
+               Ada.Streams.Stream_IO.Create
+                 (F, Ada.Streams.Stream_IO.Out_File, Full_Path);
+            end;
             Ada.Streams.Stream_IO.Write (F, Bytes);
             Ada.Streams.Stream_IO.Close (F);
          end;

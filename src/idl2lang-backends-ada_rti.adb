@@ -7,11 +7,19 @@
 --  engine.
 ------------------------------------------------------------------------------
 
+with Ada.Directories;
+with Ada.Text_IO;
 with Ada.Strings.Unbounded;
 
 package body IDL2Lang.Backends.Ada_RTI is
 
    package SU renames Ada.Strings.Unbounded;
+
+   --  String vectors for the external-with scan.
+   function Eq_US (L, R : SU.Unbounded_String) return Boolean is
+     (SU."=" (L, R));
+   package US_List is new Ada.Containers.Vectors
+     (Positive, SU.Unbounded_String, Eq_US);
    package S renames IDL2Lang.Syntax;
 
    use all type S.Type_Kind_T;
@@ -149,7 +157,10 @@ package body IDL2Lang.Backends.Ada_RTI is
    end Underscorify;
 
    function C_Join (Prefix, Rest : String) return String is
-     (if Prefix = "" then Rest else Underscorify (Prefix) & "_" & Rest);
+     (if Prefix = "" then Rest
+      elsif Prefix (Prefix'Last) = '_'
+      then Underscorify (Prefix) & Rest
+      else Underscorify (Prefix) & "_" & Rest);
    --  C name join: "" at file scope means no prefix at all (oracle
    --  Constants: "MYLONG_initialize", "MYLONG_get_typecode").
 
@@ -319,7 +330,8 @@ package body IDL2Lang.Backends.Ada_RTI is
         ("--         WARNING: THIS FILE IS AUTO-GENERATED. DO NOT MODIFY.");
       Self.Put_Line ("--");
       Self.Put_Line
-        ("--  This file was generated from " & Idl_Path);
+        ("--  This file was generated from "
+         & Ada.Directories.Simple_Name (Idl_Path));
       Self.Put_Line
         ("--  using RTI Code Generator (rtiddsgen) version 4.7.0.");
       Self.Put_Line
@@ -462,7 +474,8 @@ package body IDL2Lang.Backends.Ada_RTI is
      (Self : in out Ada_RTI_Backend;
       Module_Name : String;
       Def : S.Definition_Ref;
-      C_Prefix : String := "")
+      C_Prefix : String := "";
+      Skip_Sep : Boolean := False)
    is
       --  Typedef block (oracle Constants/Global):
       --  "    type N is new <mapped>;" (4-space indent on the first
@@ -503,6 +516,9 @@ package body IDL2Lang.Backends.Ada_RTI is
          end if;
       end Ada_Ref;
    begin
+      if not Skip_Sep then
+         Self.Put_Line (" ");
+      end if;
       if not Dcl.Array_Dims.Is_Empty then
          if Dcl.Array_Dims.Last_Index > 1 then
             raise Backend_Error
@@ -583,7 +599,13 @@ package body IDL2Lang.Backends.Ada_RTI is
                           & S.Image (Def.Switch_Type.Type_Name)))
          else DDS_Type (Def.Switch_Type.Kind));
    begin
-      Self.Put_Line (" ");
+      --  Separator (see Emit_Struct_Block): skipped when the
+      --  preceding const already emitted its ' ' line.
+      if Skip_Next_Separator then
+         Skip_Next_Separator := False;
+      else
+         Self.Put_Line (" ");
+      end if;
       Self.Put_Line
         ("  " & Type_Name & "_TypeName : aliased Standard.DDS.String :="
            & " Standard.DDS.To_DDS_String  (""" & Colons (Module_Name)
@@ -723,6 +745,50 @@ package body IDL2Lang.Backends.Ada_RTI is
            & " Standard.DDS.To_DDS_String  (""" & Colons (Module_Name) & "::"
            & Type_Name & """);");
       Self.Put_Line ("   type " & Type_Name & " is record");
+      --  A valuetype with a base renders the inherited member
+      --  first ("parent : aliased <Base>;" - oracle types.idl
+      --  MyValueType_extend) when the base valuetype is defined
+      --  in this same file (included-IDL bases cannot be
+      --  resolved here; rtiddsgen merges them during include
+      --  processing).
+      if Def.Kind = D_Value_Type
+        and then Def.Has_Base_Type
+      then
+         declare
+            Base_Image : constant String :=
+              (if Def.Base_Type.Absolute
+                 then S.Image (Def.Base_Type)
+               else Dotted_Image (Def.Base_Type));
+            --  The module that DECLARES the base is the current
+            --  module (in-file base): qualify with the full chain
+            --  by dropping the chain's last component from the
+            --  prefix when the base image already carries it.
+            Dot_In_Base : constant Natural :=
+              SU.Index (SU.To_Unbounded_String (Base_Image), ".");
+            Base_First_Part : constant String :=
+              (if Dot_In_Base > 0
+                 then Base_Image (Base_Image'First .. Dot_In_Base - 1)
+                 else Base_Image);
+            Chain_Last_Start : constant Natural :=
+              (if SU.Index (SU.To_Unbounded_String (Module_Name), ".")
+                 > 0
+               then (if Module_Name'Last - Base_First_Part'Length
+                          + 1 >= Module_Name'First
+                        then Module_Name'Last - Base_First_Part'Length
+                               + 1
+                        else Module_Name'First)
+                 else Module_Name'First);
+            Base_Ref : constant String :=
+              (if Module_Name = "" then ""
+               else Module_Name & "." & SU.To_String
+                      (Def.Base_Type.Parts.Last_Element));
+         begin
+            if Base_Ref /= "" then
+               Self.Put_Line
+                 ("    parent : aliased " & Base_Ref & ";");
+            end if;
+         end;
+      end if;
       declare
          --  A valuetype's state members live in Value_Members; a
          --  struct's in Members (oracle base.idl: basetrack_t).
@@ -732,142 +798,131 @@ package body IDL2Lang.Backends.Ada_RTI is
       begin
       for I in Mems.First_Index .. Mems.Last_Index loop
          declare
-            M : constant S.Member_T := Mems (I);
-            Dcl : constant S.Declarator_T :=
-              M.Declarators (M.Declarators.First_Index);
-            M_Name : constant String := SU.To_String (Dcl.Name);
-            --  Interface-typed members are DROPPED from the record
-            --  (oracle Global.idl: "Interface1 member1;" produces no
-            --  line; only member2 survives).  We cannot always know a
-            --  name is an interface, but the known-interfaces set
-            --  passed by Emit_Module covers the corpus case.
-            Is_Interface_Member : constant Boolean :=
-              M.Member_Type.Kind = T_Scoped_Name
-                and then Member_Type_Name /= ""
-                and then SU.To_String
-                           (M.Member_Type.Type_Name.Parts.Element
-                              (M.Member_Type.Type_Name.Parts.Last_Index))
-                         = Member_Type_Name;
+            Decls : S.Declarator_Vectors.Vector renames
+              Mems (I).Declarators;
          begin
-            if Is_Interface_Member then
-               null;
-            elsif not Dcl.Array_Dims.Is_Empty then
-               --  "<Elem>_Array(1..N)" with the dims inlined.  Primitive
-               --  elements map to Standard.DDS.<Kind>_Array (oracle
-               --  ArrayRanges: "Standard.DDS.Boolean_Array(1..24)");
-               --  scoped elements keep their own scope + "_Array".
-               if Dcl.Array_Dims.Last_Index > 1 then
-                  raise Backend_Error
-                    with "multi-dimensional arrays are a later increment";
-               end if;
-               declare
-                  Elem_Name : constant String :=
-                    Array_Elem (Module_Name, M.Member_Type.all);
-                  Bound : constant String :=
-                    Bound_Image (Module_Name, Dcl.Array_Dims (1).all);
-               begin
-                  Self.Put_Line
-                    ("    " & M_Name & " : aliased  " & Elem_Name
-                       & "_Array(1.." & Bound & ");");
-               end;
-            elsif M.Is_Pointer then
-               --  Pointer member (corpus: "short *pSData;"): "access "
-               --  replaces "aliased ", no trailing spaces (oracle
-               --  Global.idl: "pSData : access Standard.DDS.Short;").
-               declare
-                  M_Name2 : constant String := M_Name;
-                  pragma Unreferenced (M_Name2);
-                  Ref : constant String :=
-                    (if M.Member_Type.Kind = T_Scoped_Name
-                       then (declare
-                                N_Parts : constant Natural :=
-                                  M.Member_Type.Type_Name.Parts.Last_Index;
-                             begin
-                                (if N_Parts > 1
-                                   then Dotted_Image
-                                          (M.Member_Type.Type_Name)
-                                 else Module_Name & "."
-                                      & S.Image
-                                          (M.Member_Type.Type_Name)))
-                     elsif M.Member_Type.Kind = T_String
-                       or else M.Member_Type.Kind = T_Wide_String
-                     then
-                        (declare
-                            W : constant String :=
-                              (if M.Member_Type.Kind = T_Wide_String
-                                 then "Wide_" else "");
-                         begin
-                            "Standard.DDS." & W & "String")
-                     else
-                        DDS_Type (M.Member_Type.Kind));
-               begin
-                  Self.Put_Line
-                    ("    " & M_Name & " : access " & Ref & ";");
-               end;
-            elsif M.Member_Type.Kind = T_Sequence then
-               --  Quirk: "aliased  " double space; primitive element
-               --  types map to the pre-instantiated Standard.DDS.*_Seq,
-               --  scoped elements to "<qual-elem>_Seq.Sequence" (oracle
-               --  sequences.idl); the bound is dropped in either case.
-               if M.Member_Type.Element_Type.Kind = T_Scoped_Name then
-                  Self.Put_Line
-                    ("    " & M_Name & " : aliased  "
-                       & Array_Elem (Module_Name,
-                           M.Member_Type.Element_Type.all)
-                       & "_Seq.Sequence;");
-               else
-                  Self.Put_Line
-                    ("    " & M_Name & " : aliased  "
-                       & DDS_Seq (M.Member_Type.Element_Type.Kind) & ";");
-               end if;
-            elsif M.Member_Type.Kind = T_Scoped_Name then
-               --  Scoped-name members use the fully qualified name.
-               --  A multi-part name carries its own Ada scope (dots:
-               --  vtypes_test.base.position_t, oracle base.idl); the
-               --  Module.Type form only applies when the name has no
-               --  scope of its own (Shapes.idl: fill).
+         for C in Decls.Iterate loop
+            declare
+               M : constant S.Member_T := Mems (I);
+               Dcl : constant S.Declarator_T := Decls (C);
+               M_Name : constant String := SU.To_String (Dcl.Name);
+     --  Interface-typed members are DROPPED from the record
+     --  (oracle Global.idl: "Interface1 member1;" produces no
+     --  line; only member2 survives).  We cannot always know a
+     --  name is an interface, but the known-interfaces set
+     --  passed by Emit_Module covers the corpus case.
+     Is_Interface_Member : constant Boolean :=
+       M.Member_Type.Kind = T_Scoped_Name
+         and then Member_Type_Name /= ""
+         and then SU.To_String
+                    (M.Member_Type.Type_Name.Parts.Element
+                       (M.Member_Type.Type_Name.Parts.Last_Index))
+                  = Member_Type_Name;
+         begin
+         if Is_Interface_Member then
+            null;
+         elsif not Dcl.Array_Dims.Is_Empty then
+            if Dcl.Array_Dims.Last_Index > 1 then
+               raise Backend_Error
+                 with "multi-dimensional arrays are a later increment";
+            end if;
+            if M.Member_Type.Kind = T_Scoped_Name then
                declare
                   N_Parts : constant Natural :=
                     M.Member_Type.Type_Name.Parts.Last_Index;
                   Ref : constant String :=
                     (if N_Parts > 1
                        then Dotted_Image (M.Member_Type.Type_Name)
-                     elsif M.Member_Type.Type_Name.Absolute
-                       then S.Image (M.Member_Type.Type_Name)
                      else Module_Name & "."
-                            & S.Image (M.Member_Type.Type_Name));
+                            & Dotted_Image (M.Member_Type.Type_Name));
                begin
                   Self.Put_Line
-                    ("    " & M_Name & " : aliased " & Ref & ";    ");
-               end;
-            elsif M.Member_Type.Kind = T_String
-              or else M.Member_Type.Kind = T_Wide_String
-            then
-               declare
-                  Bound : constant String :=
-                    (if M.Member_Type.String_Bound = null
-                       then "255"
-                       else Const_Image
-                              (M.Member_Type.String_Bound.all));
-                  W : constant String :=
-                    (if M.Member_Type.Kind = T_Wide_String
-                       then "Wide_" else "");
-               begin
-                  Self.Put_Line
-                    ("    " & M_Name & " : aliased Standard.DDS."
-                       & W & "String; --  maximum length = (" & Bound
-                       & ")    ");
+                    ("    " & M_Name & " : aliased  " & Ref
+                       & "_Array(1.." & Bound_Image (Module_Name,
+                            Dcl.Array_Dims (1).all) & ");");
                end;
             else
-               --  Quirk: primitive member lines end with four spaces.
+               Self.Put_Line
+                 ("    " & M_Name & " : aliased  "
+                    & DDS_Type (M.Member_Type.Kind)
+                    & "_Array(1.."
+                    & Bound_Image (Module_Name, Dcl.Array_Dims (1).all)
+                    & ");");
+            end if;
+         elsif M.Member_Type.Kind = T_Sequence then
+            if M.Member_Type.Element_Type.Kind = T_Scoped_Name then
+               declare
+                  N_Parts : constant Natural :=
+                    M.Member_Type.Element_Type.Type_Name.Parts.Last_Index;
+                  Ref : constant String :=
+                    (if N_Parts > 1
+                       then Dotted_Image
+                              (M.Member_Type.Element_Type.Type_Name)
+                     elsif M.Member_Type.Element_Type.Type_Name.Absolute
+                       then S.Image (M.Member_Type.Element_Type.Type_Name)
+                     else Module_Name & "."
+                            & Dotted_Image
+                                (M.Member_Type.Element_Type.Type_Name));
+               begin
+                  Self.Put_Line
+                    ("    " & M_Name & " : aliased  "
+                       & Ref & "_Seq.Sequence;");
+               end;
+            else
+               Self.Put_Line
+                 ("    " & M_Name & " : aliased  "
+                    & DDS_Seq (M.Member_Type.Element_Type.Kind) & ";");
+            end if;
+         elsif M.Member_Type.Kind = T_Scoped_Name then
+            declare
+               N_Parts : constant Natural :=
+                 M.Member_Type.Type_Name.Parts.Last_Index;
+               Ref : constant String :=
+                 (if N_Parts > 1
+                    then Dotted_Image (M.Member_Type.Type_Name)
+                  elsif M.Member_Type.Type_Name.Absolute
+                    then S.Image (M.Member_Type.Type_Name)
+                  else Module_Name & "."
+                         & S.Image (M.Member_Type.Type_Name));
+            begin
+               Self.Put_Line
+                 ("    " & M_Name & " : aliased " & Ref & ";    ");
+            end;
+         elsif M.Member_Type.Kind = T_String
+           or else M.Member_Type.Kind = T_Wide_String
+         then
+            declare
+               Bound : constant String :=
+                 (if M.Member_Type.String_Bound = null
+                    then "255"
+                    else Const_Image
+                           (M.Member_Type.String_Bound.all));
+               W : constant String :=
+                 (if M.Member_Type.Kind = T_Wide_String
+                    then "Wide_" else "");
+            begin
+               Self.Put_Line
+                 ("    " & M_Name & " : aliased Standard.DDS."
+                    & W & "String; --  maximum length = (" & Bound
+                    & ")    ");
+            end;
+         else
+            if M.Is_Pointer then
+               Self.Put_Line
+                 ("    " & M_Name & " : access "
+                    & DDS_Type (M.Member_Type.Kind) & ";");
+            else
                Self.Put_Line
                  ("    " & M_Name & " : aliased "
                     & DDS_Type (M.Member_Type.Kind) & ";    ");
             end if;
-                     end;
-                  end loop;
-                  end;  --  the Mems declare block
-                  Self.Put_Line ("   end record;");
+         end if;
+         end;
+      end loop;
+      end;
+      end loop;
+      end;
+      Self.Put_Line ("   end record;");
       Self.Put_Line (" ");
       Self.Put_Line ("   pragma Convention (C, " & Type_Name & ");");
       Self.Put_Line ("   type " & Type_Name & "_Access is access all "
@@ -1532,7 +1587,102 @@ package body IDL2Lang.Backends.Ada_RTI is
       --  levels that directly declare types get a body (the oracle:
       --  a.ads, a-b.ads empty; a-b-c.ads + a-b-c.adb for the leaf).
 
-      procedure Emit_Module_From_List
+      --  External-with scan: scoped-name types referenced by members
+   --  or typedefs whose dotted scope is not local to this file
+   --  (an included IDL's types, e.g. org.omg.time) pull a
+   --  "with <dotted-scope>;" line (oracle hcm_common).  Library
+   --  units (DDS/Standard/RTI/Interfaces) are excluded.
+   procedure Collect_External_Scopes
+     (Defs : S.Definition_Vectors.Vector;
+      Scope_Ada_Prefix : String;
+      Seen : in out US_List.Vector)
+   is
+      procedure Consider (N : S.Scoped_Name_T) is
+         Dotted : constant String := Dotted_Image (N);
+         N_Parts : constant Natural := N.Parts.Last_Index;
+         Name_Len : constant Natural :=
+           SU.Length (N.Parts.Last_Element);
+         Dot : constant Natural := SU.Index
+           (SU.To_Unbounded_String (Dotted), ".");
+      begin
+         if Dot = 0 then
+            return;
+         end if;
+         declare
+            Head : constant String := Dotted (Dotted'First .. Dot - 1);
+            --  Full scope of the named type: every part but the
+            --  last ("vtypes_test::base::basetrack_t" ->
+            --  "vtypes_test.base").
+            Scope_Only : constant String :=
+              (if N_Parts > 1
+                 then Dotted (Dotted'First .. Dotted'Last - Name_Len - 1)
+                 else Dotted);
+         begin
+            if Head = "DDS" or else Head = "Standard"
+              or else Head = "RTI" or else Head = "Interfaces"
+            then
+               return;
+            end if;
+            if Scope_Ada_Prefix /= ""
+              and then Dotted'Length > Scope_Ada_Prefix'Length
+              and then Dotted (Dotted'First
+                .. Dotted'First + Scope_Ada_Prefix'Length - 1)
+                = Scope_Ada_Prefix
+            then
+               return;
+            end if;
+            for K of Seen loop
+               if SU.To_String (K) = Scope_Only then
+                  return;
+               end if;
+            end loop;
+            --  A scope whose name is the LAST component of the
+            --  current chain is local (rtiddsgen renders the type
+            --  unqualified in that module: types.idl 'Key' ->
+            --  with-scope = the full chain).
+            if Scope_Ada_Prefix'Length > Scope_Only'Length + 1
+              and then Scope_Ada_Prefix
+                (Scope_Ada_Prefix'Last - Scope_Only'Length + 1
+                 .. Scope_Ada_Prefix'Last) = Scope_Only
+            then
+               return;
+            end if;
+            US_List.Append (Seen,
+              SU.To_Unbounded_String (Scope_Only));
+         end;
+      end Consider;
+   begin
+      for D of Defs loop
+         if D.Kind = S.D_Struct or else D.Kind = S.D_Value_Type then
+            declare
+               Mems : constant S.Member_Vectors.Vector :=
+                 (if D.Kind = S.D_Value_Type
+                    then D.Value_Members else D.Members);
+            begin
+               for M of Mems loop
+                  if M.Member_Type.Kind = S.T_Scoped_Name then
+                     Consider (M.Member_Type.Type_Name);
+                  end if;
+               end loop;
+            end;
+         elsif D.Kind = S.D_Typedef then
+            if D.Typedef_Type.Kind = S.T_Scoped_Name then
+               Consider (D.Typedef_Type.Type_Name);
+            end if;
+         end if;
+         --  A valuetype's base type may come from an included IDL
+         --  (oracle twod: valuetype twod_track_t :
+         --  vtypes_test::base::basetrack_t -> with
+         --  vtypes_test.base;).
+         if D.Kind = S.D_Value_Type
+           and then D.Has_Base_Type
+         then
+            Consider (D.Base_Type);
+         end if;
+      end loop;
+   end Collect_External_Scopes;
+
+   procedure Emit_Module_From_List
         (Body_List : S.Definition_Vectors.Vector;
          Package_Name : String;
          Idl_Path : String);
@@ -1593,6 +1743,7 @@ package body IDL2Lang.Backends.Ada_RTI is
             end;
          end loop;
 
+         Skip_Next_Separator := False;
          --  Pass 1: the module spec.
          Self.Select_Output_File (Module_Spec_Name, F_Ada_Spec);
          Self.Emit_Header (Idl_Path);
@@ -1601,6 +1752,14 @@ package body IDL2Lang.Backends.Ada_RTI is
             Self.Put_Line ("with DDS;");
             Self.Put_Line ("with DDS.Sequences_Generic;");
          end if;
+         declare
+            Seen : US_List.Vector := US_List.Empty_Vector;
+         begin
+            Collect_External_Scopes (D.Module_Body, Full_Name, Seen);
+            for K of Seen loop
+               Self.Put_Line ("with " & SU.To_String (K) & ";");
+            end loop;
+         end;
          Self.New_Line;
          Self.New_Line;
          Self.Put_Line
@@ -1624,7 +1783,10 @@ package body IDL2Lang.Backends.Ada_RTI is
                      --  base.idl: basetrack_t).
                      Self.Emit_Struct_Block (Full_Name, Sub);
                   when D_Typedef =>
-                     Self.Emit_Typedef_Block (Full_Name, Sub);
+                     Self.Emit_Typedef_Block
+                       (Full_Name, Sub, C_Prefix,
+                        Skip_Next_Separator);
+                     Skip_Next_Separator := False;
                   when D_Const =>
                      Self.Put_Line ("");
                      Self.Emit_Const_Line (Full_Name, Sub);
@@ -1635,8 +1797,19 @@ package body IDL2Lang.Backends.Ada_RTI is
                      if J < D.Module_Body.Last_Index
                        and then D.Module_Body (J + 1).Kind /= D_Const
                      then
-                        Self.Put_Line (" ");
-                        Skip_Next_Separator := True;
+                        if D.Module_Body (J + 1).Kind = D_Typedef
+                          or else D.Module_Body (J + 1).Kind = D_Struct
+                          or else D.Module_Body (J + 1).Kind = D_Union
+                          or else D.Module_Body (J + 1).Kind = D_Value_Type
+                        then
+                           Self.Put_Line (" ");
+                           Skip_Next_Separator := True;
+                        elsif D.Module_Body (J + 1).Kind = D_Enum then
+                           null;  --  the enum block brings its own blank
+                        else
+                           Self.New_Line;
+                           Skip_Next_Separator := True;
+                        end if;
                      end if;
                   when others =>
                      null;
@@ -1697,6 +1870,19 @@ package body IDL2Lang.Backends.Ada_RTI is
                        (Full_Name, To_String (Sub.Name));
                      Self.Emit_Body_Copy
                        (Full_Name, To_String (Sub.Name));
+                  when D_Typedef =>
+                     Self.Emit_Body_Initialize
+                       (C_Prefix, SU.To_String
+                          (Sub.Typedef_Declarators.Element
+                             (Sub.Typedef_Declarators.First_Index).Name));
+                     Self.Emit_Body_Finalize
+                       (C_Prefix, SU.To_String
+                          (Sub.Typedef_Declarators.Element
+                             (Sub.Typedef_Declarators.First_Index).Name));
+                     Self.Emit_Body_Copy
+                       (C_Prefix, SU.To_String
+                          (Sub.Typedef_Declarators.Element
+                             (Sub.Typedef_Declarators.First_Index).Name));
                   when others =>
                      null;
                end case;
@@ -1766,6 +1952,7 @@ package body IDL2Lang.Backends.Ada_RTI is
             end if;
          end loop;
 
+         Skip_Next_Separator := False;
          --  Pass 1: the spec.
          Self.Select_Output_File (Module_Spec_Name, F_Ada_Spec);
          Self.Emit_Header (Idl_Path);
@@ -1776,12 +1963,32 @@ package body IDL2Lang.Backends.Ada_RTI is
          if Declares_Types then
             Self.Put_Line ("with DDS.Sequences_Generic;");
          end if;
+         --  External (included-IDl) scopes referenced by types.
+         declare
+            Seen : US_List.Vector := US_List.Empty_Vector;
+         begin
+            Collect_External_Scopes (Body_List, "", Seen);
+            for K of Seen loop
+               Self.Put_Line ("with " & SU.To_String (K) & ";");
+            end loop;
+         end;
          Self.New_Line;
          --  "use type" lines for the numeric base types any const
          --  uses, fixed precedence order (oracle Constants.idl:
          --  Long_Long, Long, Double; oracle Global.idl: Long, Double).
          declare
             Uses_Long_Long, Uses_Long, Uses_Double : Boolean := False;
+
+            --  True when the const's value is a plain numeric
+            --  literal (no operators, no unary minus): such consts
+            --  do not pull a "use type" line (oracle nametest: bare
+            --  'PI := 3.141592641' emits none).
+            function Is_Bare_Literal (E : S.Expression_Ref) return Boolean
+            is
+              (E /= null
+               and then (case E.Kind is
+                            when S.E_Integer | S.E_Floating_Point => True,
+                            when others => False));
          begin
             for J in Body_List.First_Index .. Body_List.Last_Index loop
                declare
@@ -1794,9 +2001,17 @@ package body IDL2Lang.Backends.Ada_RTI is
                      elsif T.Kind = T_Long_Long then
                         Uses_Long_Long := True;
                      elsif T.Kind = T_Long then
-                        Uses_Long := True;
+                        if not Is_Bare_Literal
+                                 (Body_List (J).Const_Value)
+                        then
+                           Uses_Long := True;
+                        end if;
                      elsif T.Kind = T_Double then
-                        Uses_Double := True;
+                        if not Is_Bare_Literal
+                                 (Body_List (J).Const_Value)
+                        then
+                           Uses_Double := True;
+                        end if;
                      end if;
                   end if;
                end;
@@ -1829,15 +2044,29 @@ package body IDL2Lang.Backends.Ada_RTI is
                   when D_Struct | D_Value_Type =>
                      Self.Emit_Struct_Block (Full_Name, Sub);
                   when D_Typedef =>
-                     Self.Emit_Typedef_Block (Full_Name, Sub);
+                     Self.Emit_Typedef_Block
+                       (Full_Name, Sub, "",
+                        Skip_Next_Separator);
+                     Skip_Next_Separator := False;
                   when D_Const =>
                      Self.Put_Line ("");
                      Self.Emit_Const_Line (Full_Name, Sub);
                      if J < Body_List.Last_Index
                        and then Body_List (J + 1).Kind /= D_Const
                      then
-                        Self.Put_Line (" ");
-                        Skip_Next_Separator := True;
+                        if Body_List (J + 1).Kind = D_Typedef
+                          or else Body_List (J + 1).Kind = D_Struct
+                          or else Body_List (J + 1).Kind = D_Union
+                          or else Body_List (J + 1).Kind = D_Value_Type
+                        then
+                           Self.Put_Line (" ");
+                           Skip_Next_Separator := True;
+                        elsif Body_List (J + 1).Kind = D_Enum then
+                           null;  --  the enum block brings its own blank
+                        else
+                           Self.New_Line;
+                           Skip_Next_Separator := True;
+                        end if;
                      end if;
                   when others =>
                      null;

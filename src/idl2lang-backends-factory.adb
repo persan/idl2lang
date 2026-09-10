@@ -7,6 +7,8 @@
 
 with Ada.Characters.Handling;
 with IDL2Lang.Backends.Ada_RTI;
+with IDL2Lang.Backends.Java_RTI;
+with IDL2Lang.Backends.C_RTI;
 
 package body IDL2Lang.Backends.Factory is
 
@@ -35,6 +37,22 @@ package body IDL2Lang.Backends.Factory is
          declare
             Backend : constant Backend_Ref :=
               new IDL2Lang.Backends.Ada_RTI.Ada_RTI_Backend;
+         begin
+            Backend.Generate (Tree, Idl_Path);
+            return Backend;
+         end;
+      elsif Lang_Upper = "C" then
+         declare
+            Backend : constant Backend_Ref :=
+              new IDL2Lang.Backends.C_RTI.C_RTI_Backend;
+         begin
+            Backend.Generate (Tree, Idl_Path);
+            return Backend;
+         end;
+      elsif Lang_Upper = "JAVA" then
+         declare
+            Backend : constant Backend_Ref :=
+              new IDL2Lang.Backends.Java_RTI.Java_RTI_Backend;
          begin
             Backend.Generate (Tree, Idl_Path);
             return Backend;

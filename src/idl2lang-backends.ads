@@ -12,7 +12,8 @@ package IDL2Lang.Backends is
       F_Ada_Spec,                  --  .ads
       F_Ada_Body,                  --  .adb
       F_C_Source,                  --  .c
-      F_C_Header);                 --  .h
+      F_C_Header,                  --  .h
+      F_Java_Source);              --  .java
    --  Classification of the files a back-end emits; used by the
    --  byte-parity harness to pick the reference files.
 
