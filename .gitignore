@@ -37,6 +37,7 @@ Thumbs.db
 IDEA.md
 Goal.txt
 
-# Local copies of the OMG IDL 4.2 specification (fetch from
+# Local copy of the OMG IDL 4.2 specification (fetch from
 # https://www.omg.org/spec/IDL/4.2/PDF)
-doc/
+doc/idl42.pdf
+doc/idl42.txt
